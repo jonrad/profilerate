@@ -68,7 +68,7 @@ if [ -x "$(command -v docker)" ]; then
     CONTAINER="${@: -1}"
 
     profilerate_docker_cp $CONTAINER && 
-      docker exec -it -e ENV="/$PROFILERATE_ID/profilerate.sh" $@ "/$PROFILERATE_ID/shell.sh"
+      docker exec -it $@ "/$PROFILERATE_ID/shell.sh"
   }
 
   profilerate_docker_run () {
@@ -94,58 +94,49 @@ if [ -x "$(command -v kubectl)" ]; then
     local POD="${@: -1}"
     local TOTAL_ARGS=$#
     local ARGS=""
-    for i in $(seq 1 $(($TOTAL_ARGS - 1)))
-    do
-      local ARG=$(eval "echo \" \$$i\"")
-      ARGS="$ARGS $ARG"
-    done
+    if [ $# -gt 1 ]; then
+      for i in $(seq 1 $(($TOTAL_ARGS - 1)))
+      do
+        local ARG=$(eval "echo \" \$$i\"")
+        ARGS="$ARGS $ARG"
+      done
+    fi
 
+    #TODO we can use rsync for this
     kubectl exec $@ -- rm -rf "/tmp/$PROFILERATE_ID" && \
     kubectl cp $PROFILERATE_DIR $ARGS "$POD:/tmp/$PROFILERATE_ID" && \
     kubectl exec -it $@ -- "/tmp/$PROFILERATE_ID/shell.sh"
   }
 fi
 
-### su
-# Use su to switch to root and use our configuration. Stop using sudo su!
-if [ -x "$(command -v sudo)" ]; then
-  alias profilerate_su="sudo -H -s bash $PROFILERATE_DIR/shell.sh"
-fi
-
 ### SSH
-# Use su to switch to root and use our configuration. Stop using sudo su!
-if [ -x "$(command -v sudo)" ]; then
-  alias profilerate_su="sudo -H -s bash $PROFILERATE_DIR/shell.sh"
-fi
-
 if [ -x "$(command -v ssh)" ]; then
   profilerate_debug "Detected ssh"
-  # s HOST [args] to ssh to host and replicate our environment
+  # ssh [args] HOST to ssh to host and replicate our environment
   profilerate_ssh () {
-    HOST=$1
-    shift
-    ARGS=$@
+    emulate -L sh > /dev/null 2>&1
+    local HOST="${@: -1}"
+    local TOTAL_ARGS=$#
+    local ARGS=""
+    if [ $# -gt 1 ]; then
+      for i in $(seq 1 $(($TOTAL_ARGS - 1)))
+      do
+        echo $i
+        local ARG=$(eval "echo \" \$$i\"")
+        ARGS="$ARGS $ARG"
+      done
+    fi
+    echo $HOST
+    echo $ARGS
 
-    rsync -r $PROFILERATE_DIR $HOST:/tmp/ -e "ssh $ARGS" && \
-    ssh -t $HOST /tmp/$PROFILERATE_ID/shell.sh
+    rsync -r --delete "$PROFILERATE_DIR/" "$HOST:/tmp/$PROFILERATE_ID/" -e "ssh $ARGS" && \
+    ssh -t $HOST sh -lc "/tmp/$PROFILERATE_ID/shell.sh"
   }
 fi
 
 ### VIM SETUP
 if [ -f $PROFILERATE_DIR/vimrc ]; then
   export VIMINIT="source $PROFILERATE_DIR/vimrc"
-fi
-
-if [ "$(command -v shopt)" ]; then #where did this go?
-  if ! shopt -oq posix; then
-    if [ -f /usr/share/bash-completion/bash_completion ]; then
-      . /usr/share/bash-completion/bash_completion
-    elif [ -f /etc/bash_completion ]; then
-      . /etc/bash_completion
-    fi
-  fi
-else
-  profilerate_debug "No shopt found"
 fi
 
 if [ -f "$PROFILERATE_DIR/personal.sh" ]; then
