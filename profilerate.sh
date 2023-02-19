@@ -23,9 +23,14 @@ fi
 # Try to generate the profilerate id based on the current dir
 if [ -z "$PROFILERATE_ID" ]; then
   export PROFILERATE_ID=$(basename $DIR)
-  if [ "$PROFILERATE_ID" = "profilerate" ]; then
-    export PROFILERATE_ID=
-    echo "This script must exist in a uniquely named directory. Please rename dir to something other than 'profilerate'"
+
+  while [ "${PROFILERATE_ID:0:1}" = "." ]
+  do
+    PROFILERATE_ID=${PROFILERATE_ID:1}
+  done
+
+  if [ -z "$PROFILERATE_ID" ]; then
+    echo "No PROFILERATE_ID set"
     return
   fi
 fi
@@ -41,13 +46,13 @@ if [ ! -z "$PROFILERATE_DIR" ]; then
 elif [ -f "$DIR/profilerate.sh" ]; then
   export PROFILERATE_DIR=$DIR
 elif [ -d "$HOME/$PROFILERATE_ID" ]; then
-  export PROFILERATE_DIR="$HOME/$PROFILERATE_ID"
+  export PROFILERATE_DIR="$HOME/.$PROFILERATE_ID"
 elif [ -d "/tmp/$PROFILERATE_ID" ]; then
-  export PROFILERATE_DIR="/tmp/$PROFILERATE_ID"
+  export PROFILERATE_DIR="/tmp/.$PROFILERATE_ID"
 elif [ -d "/$PROFILERATE_ID" ]; then
-  export PROFILERATE_DIR="/$PROFILERATE_ID" #docker hacks
+  export PROFILERATE_DIR="/.$PROFILERATE_ID" #docker hacks
 else
-  export PROFILERATE_DIR="/tmp/$PROFILERATE_ID"
+  export PROFILERATE_DIR="/tmp/.$PROFILERATE_ID"
 fi
 
 profilerate_debug "PROFILERATE_DIR=$PROFILERATE_DIR"
@@ -58,17 +63,19 @@ if [ -x "$(command -v docker)" ]; then
 
   # replicates our configuration to a container before running an interactive bash
   profilerate_docker_cp () {
-    CONTAINER="${@: -1}"
+    local CONTAINER="${@: -1}"
 
-    docker exec $CONTAINER rm -rf "$PROFILERATE_ID" && \
-      docker cp "$PROFILERATE_DIR" "$CONTAINER:$PROFILERATE_ID"
+    local DEST=".$PROFILERATE_ID"
+    docker exec $CONTAINER rm -rf "$DEST" && \
+      docker cp "$PROFILERATE_DIR" "$CONTAINER:$DEST"
   }
 
   profilerate_docker_exec () {
-    CONTAINER="${@: -1}"
+    local CONTAINER="${@: -1}"
 
+    local DEST=".$PROFILERATE_ID"
     profilerate_docker_cp $CONTAINER && 
-      docker exec -it $@ "/$PROFILERATE_ID/shell.sh"
+      docker exec -it $@ "$DEST/shell.sh"
   }
 
   profilerate_docker_run () {
@@ -103,9 +110,10 @@ if [ -x "$(command -v kubectl)" ]; then
     fi
 
     #TODO we can use rsync for this
-    kubectl exec $@ -- rm -rf "/tmp/$PROFILERATE_ID" && \
-    kubectl cp $PROFILERATE_DIR $ARGS "$POD:/tmp/$PROFILERATE_ID" && \
-    kubectl exec -it $@ -- "/tmp/$PROFILERATE_ID/shell.sh"
+    DEST = "/tmp/.$PROFILERATE_ID"
+    kubectl exec $@ -- rm -rf "$DEST" && \
+    kubectl cp $PROFILERATE_DIR $ARGS "$POD:$DEST" && \
+    kubectl exec -it $@ -- "$DEST/shell.sh"
   }
 fi
 
@@ -129,8 +137,9 @@ if [ -x "$(command -v ssh)" ]; then
     echo $HOST
     echo $ARGS
 
-    rsync -r --delete "$PROFILERATE_DIR/" "$HOST:/tmp/$PROFILERATE_ID/" -e "ssh $ARGS" && \
-    ssh -t $HOST sh -lc "/tmp/$PROFILERATE_ID/shell.sh"
+    DEST = "/tmp/.$PROFILERATE_ID"
+    rsync -r --delete "$PROFILERATE_DIR/" "$HOST:$DEST/" -e "ssh $ARGS" && \
+    ssh -t $HOST sh -lc "$DEST/shell.sh"
   }
 fi
 
