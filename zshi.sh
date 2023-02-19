@@ -32,7 +32,7 @@ fi
         -o "no_login" && -o "no_interactive" && "'$rc'" == ".zshenv" ]]; then
     "builtin" "unset" "_zshi_rcs" "_zshi_zdotdir"
     "builtin" "command" "rm" "-rf" "--" '${(q)tmp}'
-    "builtin" "eval" '${(q)init}'
+    "builtin" "source" '${(q)init}'
   else
     _zshi_zdotdir=${ZDOTDIR:-~}
     ZDOTDIR='${(q)tmp}'
