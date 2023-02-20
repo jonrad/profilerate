@@ -7,12 +7,6 @@ teardown () {
   common_teardown
 }
 
-install () {
-  local DIR=$1
-  mkdir -p $DIR
-  cp -R profilerate.sh $DIR/
-}
-
 run_profilerate_from_dir () {
   local DIR=$1
   install $DIR

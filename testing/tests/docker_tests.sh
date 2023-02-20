@@ -8,29 +8,13 @@ teardown () {
   common_teardown
 }
 
-install () {
-  local DIR=$1
-  mkdir -p $DIR
-  cp -R profilerate.sh $DIR/
-  cp -R shell.sh $DIR/
-  cp -R zshi.sh $DIR/
-  echo export TEST_ENV=env-good > $DIR/personal.sh
-  echo alias TEST_ALIAS=\"alias-good\" >> $DIR/personal.sh
-  echo "TEST_FUNCTION() { echo function-good; }" >> $DIR/personal.sh
-}
-
-run_profilerate_from_dir () {
-  local DIR=$1
-  install $DIR
-  export PROFILERATE_DIR=$DIR
-  source "$DIR/profilerate.sh"
-}
-
-@test "profilerate_docker_run " {
+docker_run () {
+  local CONTAINER=$1
   install /tmp/.my_profile
   run expect <<EOF
-spawn sh -c "cd /tmp/.my_profile/;. /tmp/.my_profile/profilerate.sh; profilerate_docker_run --rm bash"
+spawn sh -c "cd /tmp/.my_profile/;. /tmp/.my_profile/profilerate.sh; profilerate_docker_run --rm $CONTAINER"
 send "alias TEST_ALIAS\r"
+send "echo PROFILERATE_DIR: \\\$PROFILERATE_DIR\r"
 send "echo \\\$TEST_ENV\r"
 send "TEST_FUNCTION\r"
 send "exit\r"
@@ -39,4 +23,17 @@ EOF
   assert_output --partial "env-good"
   assert_output --partial "alias-good"
   assert_output --partial "function-good"
+  assert_output --partial "PROFILERATE_DIR: /tmp/.my_profile"
+}
+
+@test "profilerate_docker_run bash" {
+  docker_run "bash"
+}
+
+@test "profilerate_docker_run sh" {
+  docker_run "alpine"
+}
+
+@test "profilerate_docker_run zsh" {
+  docker_run "zshusers/zsh"
 }
