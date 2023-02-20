@@ -107,10 +107,31 @@ minikube
 
 ## TODO
 
-The following are my high level plans for future work on this:
-
+* Docker non-default dir, can't write to /
+* update readme
+* fallback
+* rest of tests
+* get rid of profilerate_id
 * Clean up the kubernetes bits. Yikes
 * Installation script
-* Make argument ordering for ssh/kubectl/docker not matter as much
-* Add ability to share plugins
+
+## Notes
+* bash image: bash
+* sh image: alpine
+* zsh image: zshusers/zsh
+
+To test:
+* env vars
+* alias
+* functions
+
+Docker:
+* docker run --rm --detach --name sh alpine sleep infinity
+* docker run --rm --detach --name zsh zshusers/zsh sleep infinity
+* docker run --rm --detach --name bash bash sleep infinity
+
+* test that all shells other rc scripts run as well
+
+## Caveats
+Doesn't work with readonly file systems
 

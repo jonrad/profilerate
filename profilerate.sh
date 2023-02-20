@@ -12,21 +12,26 @@ else
   }
 fi
 
-DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
-
-# Load the default bashrc as well (TODO: Why?)
-if [ -f "$HOME/.bashrc" ]; then
-  profilerate_debug "Loading $HOME/.bashrc"
-  . "$HOME/.bashrc"
+if [ ! -z "$PROFILERATE_DIR" ]; then
+  DIR=$PROFILERATE_DIR
+else
+  DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 fi
- 
+
+## Load the default bashrc as well (TODO: Why?)
+#if [ -f "$HOME/.bashrc" ]; then
+#  profilerate_debug "Loading $HOME/.bashrc"
+#  . "$HOME/.bashrc"
+#fi
+
 # Try to generate the profilerate id based on the current dir
 if [ -z "$PROFILERATE_ID" ]; then
   export PROFILERATE_ID=$(basename $DIR)
 
-  while [ "${PROFILERATE_ID:0:1}" = "." ]
+  # todo can we remove printf (yes)
+  while [ "$(printf %.1s "$PROFILERATE_ID")" = "." ]
   do
-    PROFILERATE_ID=${PROFILERATE_ID:1}
+    PROFILERATE_ID=${PROFILERATE_ID#.}
   done
 
   if [ -z "$PROFILERATE_ID" ]; then
@@ -63,18 +68,20 @@ if [ -x "$(command -v docker)" ]; then
 
   # replicates our configuration to a container before running an interactive bash
   profilerate_docker_cp () {
-    local CONTAINER="${@: -1}"
+    local CONTAINER
+    for CONTAINER; do true; done
 
-    local DEST=".$PROFILERATE_ID"
+    local DEST="/tmp/.$PROFILERATE_ID"
     docker exec $CONTAINER rm -rf "$DEST" && \
-      docker cp "$PROFILERATE_DIR" "$CONTAINER:$DEST"
+      docker cp "$PROFILERATE_DIR" "$CONTAINER:$DEST" >/dev/null 2>&1
   }
 
   profilerate_docker_exec () {
-    local CONTAINER="${@: -1}"
+    local CONTAINER
+    for CONTAINER; do true; done
 
-    local DEST=".$PROFILERATE_ID"
-    profilerate_docker_cp $CONTAINER && 
+    local DEST="/tmp/.$PROFILERATE_ID"
+    profilerate_docker_cp $CONTAINER &&
       docker exec -it $@ "$DEST/shell.sh"
   }
 
@@ -83,9 +90,9 @@ if [ -x "$(command -v docker)" ]; then
     CONTAINER=$(docker run -it --detach --entrypoint sh $@ -c 'trap "exit 0" 2 && sleep infinity')
 
     if [ -n "$CONTAINER" ]; then
-      profilerate_docker_exec $CONTAINER 
-      echo Stopping container && 
-        docker exec -it $CONTAINER killall sleep > /dev/null 2>&1 || 
+      profilerate_docker_exec $CONTAINER
+      echo Stopping container &&
+        docker exec -it $CONTAINER killall sleep > /dev/null 2>&1 ||
         docker stop $CONTAINER
     fi
   }

@@ -9,6 +9,12 @@ profilerate_shell() {
   fi
 
   export PROFILERATE_ID=$(basename $DIR)
+  # todo can we remove printf (yes)
+  while [ "$(printf %.1s "$PROFILERATE_ID")" = "." ]
+  do
+    PROFILERATE_ID=${PROFILERATE_ID#.}
+  done
+
   if [ -x "$(command -v zsh)" ]; then
     export PROFILERATE_SHELL=zsh
     $DIR/zshi.sh $DIR/profilerate.sh -l
