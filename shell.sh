@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 profilerate_shell() {
-  local DIR=$(dirname "$0")
+  export PROFILERATE_DIR=$(dirname "$0")
   local PATH=$PATH
 
   # TODO fix dupe paths
@@ -8,7 +8,7 @@ profilerate_shell() {
     PATH="$(dirname "$SHELL"):$PATH"
   fi
 
-  export PROFILERATE_ID=$(basename $DIR)
+  export PROFILERATE_ID=$(basename $PROFILERATE_DIR)
   # todo can we remove printf (yes)
   while [ "$(printf %.1s "$PROFILERATE_ID")" = "." ]
   do
@@ -17,13 +17,13 @@ profilerate_shell() {
 
   if [ -x "$(command -v zsh)" ]; then
     export PROFILERATE_SHELL=zsh
-    $DIR/zshi.sh $DIR/profilerate.sh -l
+    $PROFILERATE_DIR/shells/zsh.sh $PROFILERATE_DIR/profilerate.sh -l
   elif [ -x "$(command -v bash)" ]; then
     export PROFILERATE_SHELL=bash
-    bash --init-file $DIR/profilerate.sh
+    bash --init-file $PROFILERATE_DIR/shells/bash.sh
   else
     export PROFILERATE_SHELL=sh
-    export ENV=$DIR/profilerate.sh
+    export ENV=$PROFILERATE_DIR/shells/sh.sh
     sh
   fi
 }

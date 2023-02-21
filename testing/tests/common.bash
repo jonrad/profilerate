@@ -20,8 +20,9 @@ install () {
   mkdir -p $DIR
   cp -R profilerate.sh $DIR/
   cp -R shell.sh $DIR/
-  cp -R zshi.sh $DIR/
-  echo export TEST_ENV=env-good > $DIR/personal.sh
+  cp -R shells $DIR/
+  echo export PS1=\"READY: \" > $DIR/personal.sh
+  echo export TEST_ENV=env-good >> $DIR/personal.sh
   echo alias TEST_ALIAS=\"alias-good\" >> $DIR/personal.sh
   echo "TEST_FUNCTION() { echo function-good; }" >> $DIR/personal.sh
 }
