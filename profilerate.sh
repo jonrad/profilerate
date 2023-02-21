@@ -12,21 +12,13 @@ else
   }
 fi
 
-if [ ! -z "$PROFILERATE_DIR" ]; then
-  DIR=$PROFILERATE_DIR
-else
-  DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
+if [ -z "$PROFILERATE_DIR" ]; then
+  export PROFILERATE_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
 fi
-
-## Load the default bashrc as well (TODO: Why?)
-#if [ -f "$HOME/.bashrc" ]; then
-#  profilerate_debug "Loading $HOME/.bashrc"
-#  . "$HOME/.bashrc"
-#fi
 
 # Try to generate the profilerate id based on the current dir
 if [ -z "$PROFILERATE_ID" ]; then
-  export PROFILERATE_ID=$(basename $DIR)
+  export PROFILERATE_ID=$(basename $PROFILERATE_DIR)
 
   # todo can we remove printf (yes)
   while [ "$(printf %.1s "$PROFILERATE_ID")" = "." ]
@@ -40,27 +32,8 @@ if [ -z "$PROFILERATE_ID" ]; then
   fi
 fi
 
-profilerate_debug "PROFILERATE_ID=$PROFILERATE_ID"
-
-
-# PROFILERATE_DIR is where the config files are located in this install
-# Sometimes looking at the script dir doesn't work when using bash with the --init-file flag
-# so we have to do some digging
-if [ ! -z "$PROFILERATE_DIR" ]; then
-  : # already set, no need to recompute - useful for debugging
-elif [ -f "$DIR/profilerate.sh" ]; then
-  export PROFILERATE_DIR=$DIR
-elif [ -d "$HOME/$PROFILERATE_ID" ]; then
-  export PROFILERATE_DIR="$HOME/.$PROFILERATE_ID"
-elif [ -d "/tmp/$PROFILERATE_ID" ]; then
-  export PROFILERATE_DIR="/tmp/.$PROFILERATE_ID"
-elif [ -d "/$PROFILERATE_ID" ]; then
-  export PROFILERATE_DIR="/.$PROFILERATE_ID" #docker hacks
-else
-  export PROFILERATE_DIR="/tmp/.$PROFILERATE_ID"
-fi
-
 profilerate_debug "PROFILERATE_DIR=$PROFILERATE_DIR"
+profilerate_debug "PROFILERATE_ID=$PROFILERATE_ID"
 
 ### Docker
 if [ -x "$(command -v docker)" ]; then
