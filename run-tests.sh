@@ -2,5 +2,5 @@
 docker run -it -e --privileged --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$PWD:/code/" \
-  jonrad/profilerate.latest \
-  bats ./testing/tests/
+  jonrad/profilerate-test-runner.latest \
+  $@

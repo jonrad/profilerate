@@ -27,13 +27,13 @@ EOF
 }
 
 @test "profilerate_docker_run bash" {
-  docker_run "bash"
+  docker_run "jonrad/profilerate-bash.latest"
 }
 
 @test "profilerate_docker_run sh" {
-  docker_run "alpine"
+  docker_run "jonrad/profilerate-sh.latest"
 }
 
 @test "profilerate_docker_run zsh" {
-  docker_run "zshusers/zsh"
+  docker_run "jonrad/profilerate-zsh.latest"
 }

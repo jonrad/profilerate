@@ -7,9 +7,12 @@ RUN apt-get install -y \
     curl \
     gnupg-agent \
     software-properties-common \
-    unzip sudo vim psmisc
-
-RUN apt-get install -y git
+    unzip \
+    sudo \
+    vim `#best text editor out there` \
+    psmisc \
+    expect `#used to test interactive shell` \
+    git `#needed to pull bats`
 
 WORKDIR /root
 
@@ -21,19 +24,21 @@ RUN echo \
   $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
 RUN apt-get update && apt-get install -y docker-ce-cli
 
-# bat
-# TODO pin
+# bats bash testing framework
+# TODO pin version
 RUN git clone --depth 1 https://github.com/bats-core/bats-core.git && \
   cd bats-core && \
   ./install.sh /usr/local && \
   cd .. && \
   rm -rf bats-core
 
-RUN git clone --depth 1 https://github.com/bats-core/bats-support.git bats-support
-RUN git clone --depth 1 https://github.com/bats-core/bats-assert.git bats-assert
+RUN git clone --depth 1 https://github.com/bats-core/bats-support.git bats-support && \
+  git clone --depth 1 https://github.com/bats-core/bats-assert.git bats-assert && \
+  mkdir -p /test_helper && \
+  mv bats-support /test_helper/ && \
+  mv bats-assert /test_helper/
 
-RUN mkdir -p /test_helper && mv bats-support /test_helper/ && mv bats-assert /test_helper/
-
-RUN apt-get install -y expect
-
+# Startup
 WORKDIR /code
+CMD [ "./testing/tests" ]
+ENTRYPOINT [ "bats" ]
