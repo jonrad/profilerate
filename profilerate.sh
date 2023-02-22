@@ -73,11 +73,11 @@ fi
 if [ -x "$(command -v kubectl)" ]; then
   profilerate_debug "Detected kubectl"
 
-  # kb replicates our configuration to a remote env before running an interactive bash
-  profilerate_kubernetes () {
+  # replicates our configuration to a remote env before running an interactive shell
+  profilerate_kubectl () {
     emulate -L sh > /dev/null 2>&1
-    local CONTAINER
-    for CONTAINER; do true; done
+    local POD
+    for POD; do true; done
     local TOTAL_ARGS=$#
     local ARGS=""
     if [ $# -gt 1 ]; then
@@ -88,11 +88,10 @@ if [ -x "$(command -v kubectl)" ]; then
       done
     fi
 
-    #TODO we can use rsync for this
     local DEST="/tmp/.$PROFILERATE_ID"
     kubectl exec $@ -- rm -rf "$DEST" && \
-    kubectl cp $PROFILERATE_DIR $ARGS "$POD:$DEST" && \
-    kubectl exec -it $@ -- "$DEST/shell.sh"
+      kubectl cp $PROFILERATE_DIR $ARGS "$POD:$DEST" && \
+      kubectl exec -it $@ -- "$DEST/shell.sh"
   }
 fi
 

@@ -1,4 +1,6 @@
 FROM ubuntu:20.04
+
+# Install general tools
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
 RUN apt-get install -y \
@@ -37,6 +39,16 @@ RUN git clone --depth 1 https://github.com/bats-core/bats-support.git bats-suppo
   mkdir -p /test_helper && \
   mv bats-support /test_helper/ && \
   mv bats-assert /test_helper/
+
+# Kind cluster
+RUN curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.17.0/kind-linux-amd64 && \
+  chmod +x ./kind && \
+  sudo mv ./kind /usr/local/bin/kind
+
+# kubectl
+# TODO: pin version
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+  install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
 # Remove host checking
 # don't ever do this

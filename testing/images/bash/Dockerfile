@@ -12,7 +12,9 @@ RUN mkdir -p /root/.ssh \
     && echo -e "ChallengeResponseAuthentication no" >> /etc/ssh/sshd_config \
     && passwd -d root
 
+RUN apk add tini
+
 RUN echo "export ETC_PROFILE=1" >> /etc/profile
 RUN echo "export HOME_BASH_PROFILE=1" >> /root/.bash_profile
 
-ENTRYPOINT [ "sh", "-c", "rc-status; rc-service sshd start; sleep infinity" ]
+ENTRYPOINT [ "tini", "--", "sh", "-c", "rc-status; rc-service sshd start; sleep infinity" ]
