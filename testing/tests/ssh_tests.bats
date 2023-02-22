@@ -47,7 +47,7 @@ EOF
 }
 
 @test "profilerate_ssh bash" {
-  ssh_run "jonrad/profilerate-bash.latest" \
+  ssh_run "jonrad/profilerate-bash.v1" \
     "send \"echo ETC_PROFILE IS \\\$ETC_PROFILE\r\"" \
     "send \"echo HOME_BASH_PROFILE IS \\\$HOME_BASH_PROFILE\r\""
 
