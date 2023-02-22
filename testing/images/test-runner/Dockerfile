@@ -38,6 +38,10 @@ RUN git clone --depth 1 https://github.com/bats-core/bats-support.git bats-suppo
   mv bats-support /test_helper/ && \
   mv bats-assert /test_helper/
 
+# Remove host checking
+# don't ever do this
+COPY ssh_config /root/.ssh/config
+
 # Startup
 WORKDIR /code
 CMD [ "./testing/tests" ]

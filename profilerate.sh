@@ -60,13 +60,11 @@ if [ -x "$(command -v docker)" ]; then
 
   profilerate_docker_run () {
     # TODO: This can be optimized by using docker run shell + docker attach using streaming input
-    CONTAINER=$(docker run -it --detach --entrypoint sh $@ -c 'trap "exit 0" 2 && sleep infinity')
+    local CONTAINER=$(docker run -it --detach --init --entrypoint sh $@ -c 'sleep infinity')
 
     if [ -n "$CONTAINER" ]; then
       profilerate_docker_exec $CONTAINER
-      echo Stopping container &&
-        docker exec -it $CONTAINER killall sleep > /dev/null 2>&1 ||
-        docker stop $CONTAINER
+      echo Stopping container && docker stop $CONTAINER
     fi
   }
 fi
@@ -78,7 +76,8 @@ if [ -x "$(command -v kubectl)" ]; then
   # kb replicates our configuration to a remote env before running an interactive bash
   profilerate_kubernetes () {
     emulate -L sh > /dev/null 2>&1
-    local POD="${@: -1}"
+    local CONTAINER
+    for CONTAINER; do true; done
     local TOTAL_ARGS=$#
     local ARGS=""
     if [ $# -gt 1 ]; then
@@ -90,7 +89,7 @@ if [ -x "$(command -v kubectl)" ]; then
     fi
 
     #TODO we can use rsync for this
-    DEST = "/tmp/.$PROFILERATE_ID"
+    local DEST="/tmp/.$PROFILERATE_ID"
     kubectl exec $@ -- rm -rf "$DEST" && \
     kubectl cp $PROFILERATE_DIR $ARGS "$POD:$DEST" && \
     kubectl exec -it $@ -- "$DEST/shell.sh"
@@ -103,23 +102,22 @@ if [ -x "$(command -v ssh)" ]; then
   # ssh [args] HOST to ssh to host and replicate our environment
   profilerate_ssh () {
     emulate -L sh > /dev/null 2>&1
-    local HOST="${@: -1}"
+    local HOT
+    for HOST; do true; done
     local TOTAL_ARGS=$#
     local ARGS=""
     if [ $# -gt 1 ]; then
       for i in $(seq 1 $(($TOTAL_ARGS - 1)))
       do
-        echo $i
         local ARG=$(eval "echo \" \$$i\"")
         ARGS="$ARGS $ARG"
       done
     fi
-    echo $HOST
-    echo $ARGS
 
-    DEST = "/tmp/.$PROFILERATE_ID"
-    rsync -r --delete "$PROFILERATE_DIR/" "$HOST:$DEST/" -e "ssh $ARGS" && \
-    ssh -t $HOST sh -lc "$DEST/shell.sh"
+    local DEST="/tmp/.$PROFILERATE_ID"
+    ssh $ARGS $HOST "rm -rf '$DEST'" && \
+      scp -r $ARGS "$PROFILERATE_DIR" "$HOST:$DEST" && \
+      ssh -t $ARGS $HOST sh -lc "$DEST/shell.sh"
   }
 fi
 
@@ -128,6 +126,7 @@ if [ -f $PROFILERATE_DIR/vimrc ]; then
   export VIMINIT="source $PROFILERATE_DIR/vimrc"
 fi
 
+### Personal rc file
 if [ -f "$PROFILERATE_DIR/personal.sh" ]; then
   profilerate_debug "Loading personal settings"
   . "$PROFILERATE_DIR/personal.sh"
@@ -135,4 +134,5 @@ else
   profilerate_debug "No personal settings found in $PROFILERATE_DIR/personal.sh"
 fi
 
+### Cleanup
 unset -f profilerate_debug
