@@ -2,7 +2,7 @@
 #V3
 
 # TODO handle failures
-if [ ! -z "$PROFILERATE_DEBUG" ]; then
+if [ -n "$PROFILERATE_DEBUG" ]; then
   profilerate_debug () {
     echo "PROFILERATE profilerate_debug: $1"
   }
@@ -13,12 +13,14 @@ else
 fi
 
 if [ -z "$PROFILERATE_DIR" ]; then
-  export PROFILERATE_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
+  PROFILERATE_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
+  export PROFILERATE_DIR
 fi
 
 # Try to generate the profilerate id based on the current dir
 if [ -z "$PROFILERATE_ID" ]; then
-  export PROFILERATE_ID=$(basename $PROFILERATE_DIR)
+  PROFILERATE_ID=$(basename "$PROFILERATE_DIR")
+  export PROFILERATE_ID
 
   # todo can we remove printf (yes)
   while [ "$(printf %.1s "$PROFILERATE_ID")" = "." ]
@@ -41,30 +43,28 @@ if [ -x "$(command -v docker)" ]; then
 
   # replicates our configuration to a container before running an interactive bash
   profilerate_docker_cp () {
-    local CONTAINER
     for CONTAINER; do true; done
 
-    local DEST="/tmp/.$PROFILERATE_ID"
-    docker exec $CONTAINER rm -rf "$DEST" && \
+    DEST="/tmp/.$PROFILERATE_ID"
+    docker exec "$CONTAINER" rm -rf "$DEST" && \
       docker cp "$PROFILERATE_DIR" "$CONTAINER:$DEST" >/dev/null 2>&1
   }
 
   profilerate_docker_exec () {
-    local CONTAINER
     for CONTAINER; do true; done
 
-    local DEST="/tmp/.$PROFILERATE_ID"
-    profilerate_docker_cp $CONTAINER &&
-      docker exec -it $@ "$DEST/shell.sh"
+    DEST="/tmp/.$PROFILERATE_ID"
+    profilerate_docker_cp "$CONTAINER" &&
+      docker exec -it "$@" "$DEST/shell.sh"
   }
 
   profilerate_docker_run () {
     # TODO: This can be optimized by using docker run shell + docker attach using streaming input
-    local CONTAINER=$(docker run -it --detach --init --entrypoint sh $@ -c 'sleep infinity')
+    CONTAINER=$(docker run -it --detach --init --entrypoint sh "$@" -c 'sleep infinity')
 
     if [ -n "$CONTAINER" ]; then
-      profilerate_docker_exec $CONTAINER
-      echo Stopping container && docker stop $CONTAINER
+      profilerate_docker_exec "$CONTAINER"
+      echo Stopping container && docker stop "$CONTAINER"
     fi
   }
 fi
@@ -76,22 +76,21 @@ if [ -x "$(command -v kubectl)" ]; then
   # replicates our configuration to a remote env before running an interactive shell
   profilerate_kubectl () {
     emulate -L sh > /dev/null 2>&1
-    local POD
     for POD; do true; done
-    local TOTAL_ARGS=$#
-    local ARGS=""
+    TOTAL_ARGS=$#
+    ARGS=""
     if [ $# -gt 1 ]; then
-      for i in $(seq 1 $(($TOTAL_ARGS - 1)))
+      for i in $(seq 1 "$($TOTAL_ARGS - 1)")
       do
-        local ARG=$(eval "echo \" \$$i\"")
+        ARG=$(eval "echo \" \$$i\"")
         ARGS="$ARGS $ARG"
       done
     fi
 
-    local DEST="/tmp/.$PROFILERATE_ID"
-    kubectl exec $@ -- rm -rf "$DEST" && \
-      kubectl cp $PROFILERATE_DIR $ARGS "$POD:$DEST" && \
-      kubectl exec -it $@ -- "$DEST/shell.sh"
+    DEST="/tmp/.$PROFILERATE_ID"
+    kubectl exec "$@" -- rm -rf "$DEST" && \
+      kubectl cp "$PROFILERATE_DIR" "$ARGS" "$POD:$DEST" && \
+      kubectl exec -it "$@" -- "$DEST/shell.sh"
   }
 fi
 
@@ -101,28 +100,27 @@ if [ -x "$(command -v ssh)" ]; then
   # ssh [args] HOST to ssh to host and replicate our environment
   profilerate_ssh () {
     emulate -L sh > /dev/null 2>&1
-    local HOT
     for HOST; do true; done
-    local TOTAL_ARGS=$#
-    local ARGS=""
+    TOTAL_ARGS=$#
+    ARGS=""
     if [ $# -gt 1 ]; then
-      for i in $(seq 1 $(($TOTAL_ARGS - 1)))
+      for i in $(seq 1 "$($TOTAL_ARGS - 1)")
       do
-        local ARG=$(eval "echo \" \$$i\"")
+        ARG=$(eval "echo \" \$$i\"")
         ARGS="$ARGS $ARG"
       done
     fi
 
-    local DEST="/tmp/.$PROFILERATE_ID"
-    ssh $ARGS $HOST "rm -rf '$DEST'" && \
-      scp -r $ARGS "$PROFILERATE_DIR" "$HOST:$DEST" && \
-      ssh -t $ARGS $HOST sh -lc "$DEST/shell.sh"
+    DEST="/tmp/.$PROFILERATE_ID"
+    ssh "$ARGS" "$HOST" "rm -rf '$DEST'" && \
+      scp -r "$ARGS" "$PROFILERATE_DIR" "$HOST:$DEST" && \
+      ssh -t "$ARGS" "$HOST" sh -lc "$DEST/shell.sh"
   }
 fi
 
 ### VIM SETUP
-if [ -f $PROFILERATE_DIR/vimrc ]; then
-  export VIMINIT="source $PROFILERATE_DIR/vimrc"
+if [ -f "$PROFILERATE_DIR/vimrc" ]; then
+  export VIMINIT="source \"$PROFILERATE_DIR/vimrc\""
 fi
 
 ### Personal rc file
