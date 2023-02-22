@@ -1,4 +1,4 @@
-#!echo "Don't call this directly"
+#!/usr/bin/env bash
 if [ -f /etc/profile ]; then
   . /etc/profile
 fi
@@ -11,4 +11,4 @@ elif [ -f ~/.profile ]; then
   . ~/.profile
 fi
 
-. $PROFILERATE_DIR/profilerate.sh
+. "$PROFILERATE_DIR/profilerate.sh"
