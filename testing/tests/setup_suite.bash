@@ -8,6 +8,6 @@ teardown_suite() {
   if [ -z "$INTERACTIVE" ]
   then
     CLUSTER_NAME="profilerate-tests"
-    kind get clusters 2>&1 | grep $CLUSTER_NAME && kind delete cluster --name $CLUSTER_NAME
+    kind get clusters 2>&1 | grep $CLUSTER_NAME && kind delete cluster --name $CLUSTER_NAME || echo 'No cluster found'
   fi
 }
