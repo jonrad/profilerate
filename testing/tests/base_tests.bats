@@ -14,15 +14,9 @@ run_profilerate_from_dir () {
   source "$DIR/profilerate.sh"
 }
 
-@test "properly sets PROFILERATE_ID" {
-  run_profilerate_from_dir /tmp/.my_profile
-  assert_equal $PROFILERATE_ID "my_profile"
-}
-
 @test "does not leave unnecessary env variables" {
   local PRE_ENV=$(env)
   source profilerate.sh
-  unset PROFILERATE_ID
   unset PROFILERATE_DIR
   local POST_ENV=$(env)
 

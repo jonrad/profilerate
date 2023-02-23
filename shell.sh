@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
+### DO NOT CALL THIS FILE YOURSELF ###
+### FOR SERIOUS ###
+
 profilerate_shell() {
   PROFILERATE_DIR="$(dirname "$0")"
   export PROFILERATE_DIR
@@ -7,14 +10,6 @@ profilerate_shell() {
   if [ -x "$SHELL" ]; then
     PATH="$(dirname "$SHELL"):$PATH"
   fi
-
-  PROFILERATE_ID="$(basename "$PROFILERATE_DIR")"
-  export PROFILERATE_ID
-  # todo can we remove printf (yes)
-  while [ "$(printf %.1s "$PROFILERATE_ID")" = "." ]
-  do
-    PROFILERATE_ID=${PROFILERATE_ID#.}
-  done
 
   if [ -x "$(command -v zsh)" ]; then
     export PROFILERATE_SHELL="zsh"
@@ -30,3 +25,7 @@ profilerate_shell() {
 }
 
 profilerate_shell
+if [ -n "$PROFILERATE_DIR" ]
+then
+  rm -rf $PROFILERATE_DIR
+fi

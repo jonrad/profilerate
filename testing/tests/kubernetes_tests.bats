@@ -51,7 +51,6 @@ teardown () {
 spawn sh -c "cd /tmp/.my_profile/; . /tmp/.my_profile/profilerate.sh; profilerate_kubectl bash"
 expect "READY: "
 send "alias TEST_ALIAS\r"
-send "echo PROFILERATE_DIR: \\\$PROFILERATE_DIR\r"
 send "echo \\\$TEST_ENV\r"
 send "TEST_FUNCTION\r"
 send "exit\r"
@@ -63,7 +62,6 @@ EOF
   assert_output --partial "env-good"
   assert_output --partial "alias-good"
   assert_output --partial "function-good"
-  assert_output --partial "PROFILERATE_DIR: /tmp/.my_profile"
 }
 
 # TODO: test the command line args, like -i and -p/-P (ugh)

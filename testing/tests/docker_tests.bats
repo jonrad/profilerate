@@ -17,7 +17,6 @@ docker_run () {
 spawn sh -c "cd /tmp/.my_profile/;. /tmp/.my_profile/profilerate.sh; profilerate_docker_run --rm $CONTAINER"
 expect "READY: "
 send "alias TEST_ALIAS\r"
-send "echo PROFILERATE_DIR: \\\$PROFILERATE_DIR\r"
 send "echo \\\$TEST_ENV\r"
 send "TEST_FUNCTION\r"
 $(printf "%s\r\n" "$@")
@@ -28,7 +27,6 @@ EOF
   assert_output --partial "env-good"
   assert_output --partial "alias-good"
   assert_output --partial "function-good"
-  assert_output --partial "PROFILERATE_DIR: /tmp/.my_profile"
 }
 
 @test "profilerate_docker_run bash" {
@@ -41,7 +39,7 @@ EOF
 }
 
 @test "profilerate_docker_run sh" {
-  docker_run "jonrad/profilerate-sh.latest" \
+  docker_run "jonrad/profilerate-sh:latest" \
     "send \"echo ETC_PROFILE IS \\\$ETC_PROFILE\r\"" \
     "send \"echo HOME_PROFILE IS \\\$HOME_PROFILE\r\""
 
@@ -50,5 +48,5 @@ EOF
 }
 
 @test "profilerate_docker_run zsh" {
-  docker_run "jonrad/profilerate-zsh.latest"
+  docker_run "jonrad/profilerate-zsh:latest"
 }

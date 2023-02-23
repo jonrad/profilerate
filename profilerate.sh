@@ -17,25 +17,38 @@ if [ -z "$PROFILERATE_DIR" ]; then
   export PROFILERATE_DIR
 fi
 
-# Try to generate the profilerate id based on the current dir
-if [ -z "$PROFILERATE_ID" ]; then
-  PROFILERATE_ID=$(basename "$PROFILERATE_DIR")
-  export PROFILERATE_ID
-
-  # TODO can we remove printf (yes)
-  while [ "$(printf %.1s "$PROFILERATE_ID")" = "." ]
-  do
-    PROFILERATE_ID=${PROFILERATE_ID#.}
-  done
-
-  if [ -z "$PROFILERATE_ID" ]; then
-    echo "No PROFILERATE_ID set"
-    return
-  fi
-fi
-
 profilerate_debug "PROFILERATE_DIR=$PROFILERATE_DIR"
-profilerate_debug "PROFILERATE_ID=$PROFILERATE_ID"
+
+# TODO deal with no mktemp
+_PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
+  if [ ! -d ~/.config ]
+  then
+    mkdir -m 700 -p ~/.config || true
+  fi
+
+  DEST=$(mkdir -m 700 -p ~/.config/profilerated >/dev/null 2>&1 && echo -n ~/.config/profilerated || echo "")
+  if [ -n "$DEST" ]
+  then
+    RESULT=$(mktemp -qd "$DEST/profilerate.XXXXXX")
+  fi
+
+  if [ -z "$RESULT" ]
+  then
+    RESULT=$(mkdir -m 700 -p "/tmp/profilerated" >/dev/null 2>&1 && mktemp -qd "/tmp/profilerated/profilerate.XXXXXX")
+  fi
+
+  if [ -z "$RESULT" ]
+  then
+    RESULT=$(mktemp -qd)
+  fi
+
+  if [ -n "$RESULT" ]
+  then
+    chmod 700 "$RESULT" && echo "$RESULT" && return
+  fi
+
+  return 1
+}; _profilerate_create_dir; unset _profilerate_create_dir'
 
 ### Docker
 if [ -x "$(command -v docker)" ]; then
@@ -45,16 +58,18 @@ if [ -x "$(command -v docker)" ]; then
   profilerate_docker_cp () {
     for CONTAINER; do true; done
 
-    DEST="/tmp/.$PROFILERATE_ID"
-    docker exec "$CONTAINER" rm -rf "$DEST" && \
-      docker cp "$PROFILERATE_DIR" "$CONTAINER:$DEST" >/dev/null 2>&1
+    DEST=$(docker exec "$CONTAINER" sh -c "$_PROFILERATE_CREATE_DIR") && \
+      docker cp "$PROFILERATE_DIR/." "$CONTAINER:$DEST" >/dev/null 2>&1 && \
+      echo $DEST && \
+      return
+
+    return 1
   }
 
   profilerate_docker_exec () {
     for CONTAINER; do true; done
 
-    DEST="/tmp/.$PROFILERATE_ID"
-    profilerate_docker_cp "$CONTAINER" &&
+    DEST=$(profilerate_docker_cp "$CONTAINER") &&
       docker exec -it "$@" "$DEST/shell.sh"
   }
 
@@ -88,9 +103,8 @@ if [ -x "$(command -v kubectl)" ]; then
     fi
 
     # TODO fix for args having spaces
-    DEST="/tmp/.$PROFILERATE_ID"
-    kubectl exec $@ -- rm -rf "$DEST" && \
-      kubectl cp "$PROFILERATE_DIR" $ARGS "$POD:$DEST" && \
+    DEST=$(kubectl exec $@ -- sh -c "$_PROFILERATE_CREATE_DIR") && \
+      kubectl cp "$PROFILERATE_DIR/." $ARGS "$POD:$DEST" && \
       kubectl exec -it "$@" -- "$DEST/shell.sh"
   }
 fi
@@ -112,11 +126,12 @@ if [ -x "$(command -v ssh)" ]; then
       done
     fi
 
-    DEST="/tmp/.$PROFILERATE_ID"
     # TODO fix for args with spaces
-    ssh $ARGS "$HOST" "rm -rf '$DEST'" >/dev/null 2>&1 && \
+    # Also... scp is annoying. because scp $DIR/. doesn't work in all systems, we need to delete
+    # the directory and then hope it can get created again with scp
+    DEST=$(ssh $ARGS "$HOST" "DIR=\$($_PROFILERATE_CREATE_DIR); test -d \$DIR && rmdir \$DIR && echo \$DIR" 2>/dev/null) && \
       scp -r $ARGS "$PROFILERATE_DIR" "$HOST:$DEST" >/dev/null 2>&1 && \
-      ssh -t $ARGS "$HOST" sh -lc "$DEST/shell.sh"
+      ssh -t $ARGS "$HOST" "sh -lc \"chmod 700 '$DEST';'$DEST/shell.sh'\""
   }
 fi
 
