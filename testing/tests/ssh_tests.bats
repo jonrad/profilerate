@@ -14,7 +14,10 @@ ssh_run () {
   install /tmp/.my_profile
 
   local CONTAINER_ID=$(docker run --init --detach --rm $IMAGE)
+  echo docker run --init --detach --rm $IMAGE
+  echo $CONTAINER_ID
   local IP=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $CONTAINER_ID)
+  echo $IP
 
   # this is a bit silly, but it gets the job done
   for i in {1..5}
@@ -47,7 +50,7 @@ EOF
 }
 
 @test "profilerate_ssh bash" {
-  ssh_run "jonrad/profilerate-bash.v1" \
+  ssh_run "jonrad/profilerate-bash:v1" \
     "send \"echo ETC_PROFILE IS \\\$ETC_PROFILE\r\"" \
     "send \"echo HOME_BASH_PROFILE IS \\\$HOME_BASH_PROFILE\r\""
 

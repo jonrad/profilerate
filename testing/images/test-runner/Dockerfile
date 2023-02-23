@@ -56,5 +56,4 @@ COPY ssh_config /root/.ssh/config
 
 # Startup
 WORKDIR /code
-CMD [ "./testing/tests" ]
-ENTRYPOINT [ "bats" ]
+ENTRYPOINT [ "bats", "./testing/tests" ]

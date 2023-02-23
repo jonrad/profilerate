@@ -22,7 +22,7 @@ if [ -z "$PROFILERATE_ID" ]; then
   PROFILERATE_ID=$(basename "$PROFILERATE_DIR")
   export PROFILERATE_ID
 
-  # todo can we remove printf (yes)
+  # TODO can we remove printf (yes)
   while [ "$(printf %.1s "$PROFILERATE_ID")" = "." ]
   do
     PROFILERATE_ID=${PROFILERATE_ID#.}
@@ -87,9 +87,10 @@ if [ -x "$(command -v kubectl)" ]; then
       done
     fi
 
+    # TODO fix for args having spaces
     DEST="/tmp/.$PROFILERATE_ID"
-    kubectl exec "$@" -- rm -rf "$DEST" && \
-      kubectl cp "$PROFILERATE_DIR" "$ARGS" "$POD:$DEST" && \
+    kubectl exec $@ -- rm -rf "$DEST" && \
+      kubectl cp "$PROFILERATE_DIR" $ARGS "$POD:$DEST" && \
       kubectl exec -it "$@" -- "$DEST/shell.sh"
   }
 fi
@@ -112,9 +113,10 @@ if [ -x "$(command -v ssh)" ]; then
     fi
 
     DEST="/tmp/.$PROFILERATE_ID"
-    ssh "$ARGS" "$HOST" "rm -rf '$DEST'" && \
-      scp -r "$ARGS" "$PROFILERATE_DIR" "$HOST:$DEST" && \
-      ssh -t "$ARGS" "$HOST" sh -lc "$DEST/shell.sh"
+    # TODO fix for args with spaces
+    ssh $ARGS "$HOST" "rm -rf '$DEST'" >/dev/null 2>&1 && \
+      scp -r $ARGS "$PROFILERATE_DIR" "$HOST:$DEST" >/dev/null 2>&1 && \
+      ssh -t $ARGS "$HOST" sh -lc "$DEST/shell.sh"
   }
 fi
 

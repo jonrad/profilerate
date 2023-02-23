@@ -30,12 +30,11 @@ teardown () {
 @test "profilerate_kubectl bash" {
   install /tmp/.my_profile
 
-  kind load docker-image --name profilerate-tests jonrad/profilerate-bash.v1
+  kind load docker-image --name profilerate-tests jonrad/profilerate-bash:v1
   # It feels so wrong to start pods from the command line...
   # this is a bit silly, but it gets the job done
   # checkoing for running isn't enough here since we don't have a readiness probe
-  kubectl run --image-pull-policy IfNotPresent --image=jonrad/profilerate-bash.v1 bash
-  echo there
+  kubectl run --image-pull-policy IfNotPresent --image=jonrad/profilerate-bash:v1 bash
 
   # this is a bit silly, but it gets the job done
   # checkoing for running isn't enough here since we don't have a readiness probe
