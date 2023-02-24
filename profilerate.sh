@@ -90,22 +90,20 @@ if [ -x "$(command -v kubectl)" ]; then
 
   # replicates our configuration to a remote env before running an interactive shell
   profilerate_kubectl () {
-    emulate -L sh > /dev/null 2>&1
-    for POD; do true; done
-    TOTAL_ARGS=$#
-    ARGS=""
-    if [ $# -gt 1 ]; then
-      for i in $(seq 1 "$($TOTAL_ARGS - 1)")
-      do
-        ARG=$(eval "echo \" \$$i\"")
-        ARGS="$ARGS $ARG"
-      done
-    fi
+    eval "POD=\"\${$#}\""
+    __pop_n=$(($# - 1))
+    __pop_index=0
+    __pop_arguments=""
+    while [ $__pop_index -lt $__pop_n ]; do
+      __pop_index=$((__pop_index+1))
+      __pop_arguments="$__pop_arguments \"\${$__pop_index}\""
+    done
+    eval "set -- $__pop_arguments"
 
     # TODO fix for args having spaces
-    DEST=$(kubectl exec $@ -- sh -c "$_PROFILERATE_CREATE_DIR") && \
+    DEST=$(kubectl exec "$@" $POD -- sh -c "$_PROFILERATE_CREATE_DIR") && \
       kubectl cp "$PROFILERATE_DIR/." $ARGS "$POD:$DEST" && \
-      kubectl exec -it "$@" -- "$DEST/shell.sh"
+      kubectl exec -it "$@" $POD -- "$DEST/shell.sh"
   }
 fi
 
@@ -114,24 +112,22 @@ if [ -x "$(command -v ssh)" ]; then
   profilerate_debug "Detected ssh"
   # ssh [args] HOST to ssh to host and replicate our environment
   profilerate_ssh () {
-    emulate -L sh > /dev/null 2>&1
-    for HOST; do true; done
-    TOTAL_ARGS=$#
-    ARGS=""
-    if [ $# -gt 1 ]; then
-      for i in $(seq 1 "$($TOTAL_ARGS - 1)")
-      do
-        ARG=$(eval "echo \" \$$i\"")
-        ARGS="$ARGS $ARG"
-      done
-    fi
+    eval "HOST=\"\${$#}\""
+    __pop_n=$(($# - 1))
+    __pop_index=0
+    __pop_arguments=""
+    while [ $__pop_index -lt $__pop_n ]; do
+      __pop_index=$((__pop_index+1))
+      __pop_arguments="$__pop_arguments \"\${$__pop_index}\""
+    done
+    eval "set -- $__pop_arguments"
 
     # TODO fix for args with spaces
     # Also... scp is annoying. because scp $DIR/. doesn't work in all systems, we need to delete
     # the directory and then hope it can get created again with scp
-    DEST=$(ssh $ARGS "$HOST" "DIR=\$($_PROFILERATE_CREATE_DIR); test -d \$DIR && rmdir \$DIR && echo \$DIR" 2>/dev/null) && \
-      scp -r $ARGS "$PROFILERATE_DIR" "$HOST:$DEST" >/dev/null 2>&1 && \
-      ssh -t $ARGS "$HOST" "sh -lc \"chmod 700 '$DEST';'$DEST/shell.sh'\""
+    DEST=$(ssh "$@" "$HOST" "DIR=\$($_PROFILERATE_CREATE_DIR); test -d \$DIR && rmdir \$DIR && echo \$DIR" 2>/dev/null) && \
+      scp -r "$@" "$PROFILERATE_DIR" "$HOST:$DEST" >/dev/null 2>&1 && \
+      ssh -t "$@" "$HOST" "sh -lc \"chmod 700 '$DEST';'$DEST/shell.sh'\""
   }
 fi
 
