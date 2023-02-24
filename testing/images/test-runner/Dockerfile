@@ -14,7 +14,8 @@ RUN apt-get install -y \
     vim `#best text editor out there` \
     psmisc \
     expect `#used to test interactive shell` \
-    git `#needed to pull bats`
+    git `#needed to pull bats` \
+    rsync `#for syncing files`
 
 WORKDIR /root
 

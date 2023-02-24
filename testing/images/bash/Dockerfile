@@ -12,7 +12,7 @@ RUN mkdir -p /root/.ssh \
     && echo -e "ChallengeResponseAuthentication no" >> /etc/ssh/sshd_config \
     && passwd -d root
 
-RUN apk add tini
+RUN apk add tini rsync
 
 RUN echo "export ETC_PROFILE=1" >> /etc/profile
 RUN echo "export HOME_BASH_PROFILE=1" >> /root/.bash_profile

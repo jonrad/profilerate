@@ -1,7 +1,6 @@
 #!/usr/bin/env sh
 #V3
 
-# TODO handle failures
 if [ -n "$PROFILERATE_DEBUG" ]; then
   profilerate_debug () {
     echo "PROFILERATE profilerate_debug: $1"
@@ -50,6 +49,59 @@ _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
   return 1
 }; _profilerate_create_dir; unset _profilerate_create_dir'
 
+_profilerate_copy () {
+  RSH=$1
+  DEST=$2
+
+  # First let's try rsync, it's the most efficient
+  if [ -x "$(command -v rsync)" ]; then
+    rsync -e "$RSH" --rsync-path="$DEST" -rp "$PROFILERATE_DIR/." rsync:. && return
+  fi
+
+  # Try our implementation of tar
+  if [ -x "$(command -v tar)" ]; then
+    FILENAME=$(mktemp -u) && \
+      tar -c -f "$FILENAME" -C "$PROFILERATE_DIR" . && \
+      cat $FILENAME | eval "$RSH sh -c 'cat > $DEST/.profilerate.tar'" && \
+      eval "$RSH sh -c 'cd $DEST && tar -o -x -f .profilerate.tar && rm .profilerate.tar'" && \
+      return
+  fi
+
+  # Loop through all the files and transfer them via cat
+  # note we're optimizing for connection count, so we do multiple loops
+  # i wonder if we can do this as one command... (echo "Abc" > foo; echo "foo" > bar;)
+  # certainly with something like base64 or od, but is that more efficient?
+  cd $PROFILERATE_DIR
+  FILES=$(find .)
+  LAST_IFS=$IFS
+
+  MKDIR=""
+  echo "$FILES" | while IFS= read -r FILENAME 
+  do 
+    if [ -d "$FILENAME" ]
+    then
+      if [ "$FILENAME" != "." ]
+      then
+        MKDIR="${MKDIR}mkdir -m $(stat -f %Mp%Lp $FILENAME) -p $FILENAME;"
+      fi
+    fi
+  done
+  eval "$RSH sh -c 'cd $DEST;$MKDIR'"
+
+  CHMOD=""
+  echo "$FILES" | while IFS= read -r FILENAME 
+  do 
+    if [ -f "$FILENAME" ]
+    then
+      CHMOD="${CHMOD}chmod $(stat -f %Mp%Lp $FILENAME) $FILENAME;"
+      cat $FILENAME | eval "$RSH sh -c 'cat > $DEST/$FILENAME'"
+    fi
+  done
+  eval "$RSH sh -c 'cd $DEST;$CHMOD'"
+
+  cd -
+}
+
 ### Docker
 if [ -x "$(command -v docker)" ]; then
   profilerate_debug "Detected docker"
@@ -59,7 +111,7 @@ if [ -x "$(command -v docker)" ]; then
     for CONTAINER; do true; done
 
     DEST=$(docker exec "$CONTAINER" sh -c "$_PROFILERATE_CREATE_DIR") && \
-      docker cp "$PROFILERATE_DIR/." "$CONTAINER:$DEST" >/dev/null 2>&1 && \
+      _profilerate_copy "docker exec -i $CONTAINER" $DEST && \
       echo $DEST && \
       return
 
@@ -123,11 +175,9 @@ if [ -x "$(command -v ssh)" ]; then
     eval "set -- $__pop_arguments"
 
     # TODO fix for args with spaces
-    # Also... scp is annoying. because scp $DIR/. doesn't work in all systems, we need to delete
-    # the directory and then hope it can get created again with scp
-    DEST=$(ssh "$@" "$HOST" "DIR=\$($_PROFILERATE_CREATE_DIR); test -d \$DIR && rmdir \$DIR && echo \$DIR" 2>/dev/null) && \
-      scp -r "$@" "$PROFILERATE_DIR" "$HOST:$DEST" >/dev/null 2>&1 && \
-      ssh -t "$@" "$HOST" "sh -lc \"chmod 700 '$DEST';'$DEST/shell.sh'\""
+    DEST=$(ssh "$@" "$HOST" "$_PROFILERATE_CREATE_DIR" 2>/dev/null) && \
+      _profilerate_copy "ssh $@ $HOST" "$DEST" 2>/dev/null && \
+      ssh -t "$@" "$HOST" "$DEST/shell.sh"
   }
 fi
 
