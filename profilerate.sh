@@ -1,22 +1,10 @@
 #!/usr/bin/env sh
 #V3
 
-if [ -n "$PROFILERATE_DEBUG" ]; then
-  profilerate_debug () {
-    echo "PROFILERATE profilerate_debug: $1"
-  }
-else
-  profilerate_debug () {
-    :
-  }
-fi
-
 if [ -z "$PROFILERATE_DIR" ]; then
   PROFILERATE_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
   export PROFILERATE_DIR
 fi
-
-profilerate_debug "PROFILERATE_DIR=$PROFILERATE_DIR"
 
 # TODO deal with no mktemp
 _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
@@ -104,8 +92,6 @@ _profilerate_copy () {
 
 ### Docker
 if [ -x "$(command -v docker)" ]; then
-  profilerate_debug "Detected docker"
-
   # replicates our configuration to a container before running an interactive bash
   profilerate_docker_cp () {
     for CONTAINER; do true; done
@@ -138,8 +124,6 @@ fi
 
 ### Kubernetes
 if [ -x "$(command -v kubectl)" ]; then
-  profilerate_debug "Detected kubectl"
-
   # replicates our configuration to a remote env before running an interactive shell
   profilerate_kubectl () {
     eval "POD=\"\${$#}\""
@@ -154,14 +138,13 @@ if [ -x "$(command -v kubectl)" ]; then
 
     # TODO fix for args having spaces
     DEST=$(kubectl exec "$@" $POD -- sh -c "$_PROFILERATE_CREATE_DIR") && \
-      kubectl cp "$PROFILERATE_DIR/." $ARGS "$POD:$DEST" && \
+      _profilerate_copy "kubectl exec -i $ARGS $POD --" "$DEST" && \
       kubectl exec -it "$@" $POD -- "$DEST/shell.sh"
   }
 fi
 
 ### SSH
 if [ -x "$(command -v ssh)" ]; then
-  profilerate_debug "Detected ssh"
   # ssh [args] HOST to ssh to host and replicate our environment
   profilerate_ssh () {
     eval "HOST=\"\${$#}\""
@@ -188,11 +171,5 @@ fi
 
 ### Personal rc file
 if [ -f "$PROFILERATE_DIR/personal.sh" ]; then
-  profilerate_debug "Loading personal settings"
   . "$PROFILERATE_DIR/personal.sh"
-else
-  profilerate_debug "No personal settings found in $PROFILERATE_DIR/personal.sh"
 fi
-
-### Cleanup
-unset -f profilerate_debug
