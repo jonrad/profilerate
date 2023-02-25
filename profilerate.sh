@@ -6,6 +6,10 @@ if [ -z "$PROFILERATE_DIR" ]; then
   export PROFILERATE_DIR
 fi
 
+if [ -z "$PROFILERATE_SHELL" ]; then
+  PROFILERATE_SHELL=$(basename "$SHELL")
+fi
+
 # TODO deal with no mktemp
 _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
   if [ ! -d ~/.config ]
