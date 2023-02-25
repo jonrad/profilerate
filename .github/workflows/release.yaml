@@ -1,4 +1,5 @@
 name: Release Latest
+run-name: Release latest
 on:
   push:
     tags:
