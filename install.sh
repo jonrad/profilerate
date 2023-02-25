@@ -20,7 +20,7 @@ SRC_DIR="$(mktemp -d)"
 
 echo "Downloading and extracting to $SRC_DIR"
 mkdir -p "$SRC_DIR"
-cat "profilerate.latest.tar.gz" | tar -xz -C "$SRC_DIR" -f -
+curl "https://github.com/jonrad/profilerate/releases/download/main/profilerate.latest.tar.gz" | tar -xz -C "$SRC_DIR" -f -
 
 if [ -n "$HOME" ]
 then
