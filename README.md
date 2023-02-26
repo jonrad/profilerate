@@ -55,6 +55,36 @@ profilerate_docker_run --rm jonrad/profilerate-bash:v1 #Test bash
 profilerate_docker_run --rm jonrad/profilerate-sh:latest #Test sh (ash)
 ```
 
+## Developing Profilerate
+These directions are for people who want to add functionality to profilerate itself and share them with the world (Thank you!). This is *not* for your own personalization 
+
+* First, clone this repo:
+```
+git clone git@github.com:jonrad/profilerate.git
+```
+
+* In a shell, change the environment variable `PROFILERATE_DIR` to the repo path:
+```
+cd ./profilerate
+export PROFILERATE_DIR=$PWD
+```
+
+* Now make the changes, after which point you can source `profilerate.sh` in the same shell as above and validate
+```
+source profilerate.sh
+# Do your validation
+```
+
+* Once everything works, make sure all the tests still work (See Testing below)
+```
+./run-tests.sh
+```
+
+## Testing
+These directions are for people who want to add functionality to profilerate itself and share them with the world (Thank you!). This is *not* for your own personalization 
+
+Finish me
+
 ## TODO
 
 * Handle readonly file systems by passing everything as a variable?
