@@ -55,6 +55,9 @@ RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/s
 # don't ever do this
 COPY ssh_config /root/.ssh/config
 
+# Cleanup (This is only useful if we do a squash)
+RUN apt-get clean && rm -rf /var/cache/apt/archives /var/lib/apt/lists
+
 # Startup
 WORKDIR /code
 ENTRYPOINT [ "bats", "./testing/tests" ]
