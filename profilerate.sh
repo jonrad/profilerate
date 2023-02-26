@@ -55,7 +55,7 @@ _profilerate_copy () {
     FILENAME=$(mktemp -u) && \
       tar -c -f "$FILENAME" -C "$PROFILERATE_DIR" . && \
       cat $FILENAME | eval "$RSH sh -c 'cat > $DEST/.profilerate.tar'" && \
-      eval "$RSH sh -c 'cd $DEST && tar -o -x -f .profilerate.tar && rm .profilerate.tar'" && \
+      eval "$RSH sh -c 'cd $DEST && tar -o -x -f .profilerate.tar && rm .profilerate.tar'" >/dev/null 2>&1 && \
       return
   fi
 
@@ -91,7 +91,7 @@ _profilerate_copy () {
   done
   eval "$RSH sh -c 'cd $DEST;$CHMOD'"
 
-  cd -
+  cd - >/dev/null
 }
 
 ### Docker
@@ -101,7 +101,7 @@ if [ -x "$(command -v docker)" ]; then
     for CONTAINER; do true; done
 
     DEST=$(docker exec "$CONTAINER" sh -c "$_PROFILERATE_CREATE_DIR") && \
-      _profilerate_copy "docker exec -i $CONTAINER" $DEST && \
+      _profilerate_copy "docker exec -i $CONTAINER" $DEST >&2 && \
       echo $DEST && \
       return
 
@@ -142,7 +142,7 @@ if [ -x "$(command -v kubectl)" ]; then
 
     # TODO fix for args having spaces
     DEST=$(kubectl exec "$@" $POD -- sh -c "$_PROFILERATE_CREATE_DIR") && \
-      _profilerate_copy "kubectl exec -i $ARGS $POD --" "$DEST" && \
+      _profilerate_copy "kubectl exec -i $ARGS $POD --" "$DEST" >&2 && \
       kubectl exec -it "$@" $POD -- "$DEST/shell.sh"
   }
 fi
@@ -163,7 +163,7 @@ if [ -x "$(command -v ssh)" ]; then
 
     # TODO fix for args with spaces
     DEST=$(ssh "$@" "$HOST" "$_PROFILERATE_CREATE_DIR" 2>/dev/null) && \
-      _profilerate_copy "ssh $@ $HOST" "$DEST" 2>/dev/null && \
+      _profilerate_copy "ssh $@ $HOST" "$DEST" >&2 && \
       ssh -t "$@" "$HOST" "$DEST/shell.sh"
   }
 fi
