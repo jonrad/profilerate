@@ -47,7 +47,7 @@ _profilerate_copy () {
 
   # First let's try rsync, it's the most efficient
   if [ -x "$(command -v rsync)" ]; then
-    rsync -e "$RSH" --rsync-path="$DEST" -rp "$PROFILERATE_DIR/." rsync:. && return
+    rsync -e "$RSH" --rsync-path="$DEST" -rp "$PROFILERATE_DIR/." rsync:. >/dev/null 2>&1 && return
   fi
 
   # Try our implementation of tar
