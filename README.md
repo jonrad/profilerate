@@ -28,7 +28,14 @@ Modify this file with all your shell scripting goodness. For example:
 
 ```
 PS1='$(whoami)@$HOSTNAME:$PWD\$ '
-alias ls="ls -l"
+
+if ! ls -lastr --color=auto >/dev/null 2>&1
+then
+  alias ls="ls -lG"
+else
+  alias ls="ls -l --color=auto"
+fi
+
 alias dr="profilerate_docker_run"
 alias de="profilerate_docker_exec"
 alias ke="profilerate_kubernetes"
@@ -39,6 +46,14 @@ With the above, whenever you ssh into a different machine, you'll have the same 
 
 ### vimrc
 Create a vimrc file in the main profilerate directory. 
+
+### Testing your personal.sh
+I recommend using docker to test the different shells:
+```
+profilerate_docker_run --rm jonrad/profilerate-zsh:latest #Test zsh
+profilerate_docker_run --rm jonrad/profilerate-bash:v1 #Test bash
+profilerate_docker_run --rm jonrad/profilerate-sh:latest #Test sh (ash)
+```
 
 ## TODO
 
