@@ -117,7 +117,7 @@ if [ -x "$(command -v docker)" ]; then
 
   profilerate_docker_run () {
     # TODO: This can be optimized by using docker run shell + docker attach using streaming input
-    CONTAINER=$(docker run -it --detach --init --entrypoint sh "$@" -c 'sleep infinity')
+    CONTAINER=$(docker run -it --detach --init --entrypoint sh "$@" -c 'while true; do sleep 60; done')
 
     if [ -n "$CONTAINER" ]; then
       profilerate_docker_exec "$CONTAINER"
