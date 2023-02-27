@@ -85,9 +85,22 @@ These directions are for people who want to add functionality to profilerate its
 
 Finish me
 
+## Security
+Profilerate is installed with permissions only for the current user to be able to read/write/execute. The same goes for the destination directory for the files that are profilerated. That is, if you ssh into a different machine as user `jon`, then you'll see the following:
+
+```
+/home/jon # echo $PROFILERATE_DIR
+/home/jon/.config/profilerated/profilerate.nBHogk
+
+/home/jon # ls -ld /home/jon/.config/profilerated/profilerate.nBHogk
+     4 drwx------    3 jon     jon          4096 Feb 26 11:33 /home/jon/.config/profilerated/profilerate.nBHogk
+```
+
+This should be sufficient in most cases. HOWEVER, if you are sharing an account with multiple others, they will be able to see inside your profilerated files. If this is a concern, I highly recommend not putting anything sensitive inside your profilerate directory (such as API keys). In addition, if you don't trust the other people sharing that account, they could potentially modify your profilerate files to cause you to run commands you don't want to. However, that's the case regardless of whether you use profilerate or not since they may modify any profile file and rename commands/variables. *tldr:* don't share an account. And if you must, hopefully you trust those people.
+
 ## TODO
 
-* Handle readonly file systems by passing everything as a variable?
+* Handle readonly file systems by passing everything as a variable? Could this be used to be even more secure?
 * Handle fallback when all else fails
 
 ## Caveats

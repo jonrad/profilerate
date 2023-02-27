@@ -25,10 +25,14 @@ curl -L "https://github.com/jonrad/profilerate/releases/download/main/profilerat
 
 if [ -n "$HOME" ]
 then
-  DEST_DIR="$HOME/.profilerate"
+  _HOME=$HOME
 else
-  DEST_DIR="$(echo -n ~)/.profilerate"
+  _HOME=$(echo -n ~)
 fi
+
+mkdir -p -m 700 "$_HOME/.config"
+mkdir -p -m 700 "$_HOME/.config/profilerate"
+DEST_DIR="$_HOME/.config/profilerate"
 
 echo "Installing to $DEST_DIR"
 mkdir -p "$DEST_DIR"
@@ -59,9 +63,9 @@ else
   PROFILE=$(echo ~/.profile)
 fi
 
-if ! grep -q ". ~/.profilerate/profilerate.sh" "$PROFILE"
+if ! grep -q ". ~/.config/profilerate/profilerate.sh" "$PROFILE"
 then
-  echo ". ~/.profilerate/profilerate.sh" >> "$PROFILE"
+  echo ". ~/.config/profilerate/profilerate.sh" >> "$PROFILE"
   echo "Installed to $PROFILE"
 else
   echo "Already installed in $PROFILE!"
