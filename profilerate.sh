@@ -1,12 +1,12 @@
 #!/usr/bin/env sh
 #V3
 
-if [ -z "$PROFILERATE_DIR" ]; then
+if [ -z "${PROFILERATE_DIR:-}" ]; then
   PROFILERATE_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
   export PROFILERATE_DIR
 fi
 
-if [ -z "$PROFILERATE_SHELL" ]; then
+if [ -z "${PROFILERATE_SHELL:-}" ]; then
   PROFILERATE_SHELL=$(basename "$SHELL")
 fi
 
