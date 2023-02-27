@@ -1,13 +1,16 @@
 # 🐰 profilerate 🐰
 
-Take your dotfiles with you when you log in to remote systems using ssh/kubectl/docker, without impacting other people on the system - even if they're using the same login
+Take your dotfiles with you when you log in to remote systems using ssh/kubectl/docker, without impacting other people on the system.
+
+This is done by create special commands, documented below, that automatically copy the profilerate directory, including all your personalizations, to the systems you log into. 
 
 ## Installation/Upgrades
-
 
 ```
 bash <(curl https://raw.githubusercontent.com/jonrad/profilerate/main/install.sh)
 ```
+
+Profilerate is installed in `~/.config/profilerate`
 
 ## Commands
 
@@ -27,8 +30,10 @@ Profilerate is pretty useless by itself. What we need to do is make it our own.
 Modify this file with all your shell scripting goodness. For example:
 
 ```
+# Make a consistent PS1 that helps us identify who and where we are
 PS1='${USER=$(id -un)}@$HOSTNAME:$PWD\$ '
 
+# Add color to our ls command
 if ! ls -l --color=auto >/dev/null 2>&1
 then
   alias ls="ls -lG"
@@ -36,16 +41,15 @@ else
   alias ls="ls -l --color=auto"
 fi
 
+# helpful aliases to not have to type as much
 alias dr="profilerate_docker_run"
 alias de="profilerate_docker_exec"
 alias ke="profilerate_kubernetes"
 alias s="profilerate_ssh"
 ```
 
-With the above, whenever you ssh into a different machine, you'll have the same exact prompt. Additionally, some helpful aliases are generated so you don't have to type so much. 
-
 ### vimrc
-Create a vimrc file in the main profilerate directory. 
+Create a vimrc file in the main profilerate directory. It will automatically be loaded using VIMINIT
 
 ### Testing your personal.sh
 I recommend using docker to test the different shells:
@@ -54,9 +58,23 @@ profilerate_docker_run --rm jonrad/profilerate-zsh:latest #Test zsh
 profilerate_docker_run --rm jonrad/profilerate-bash:v1 #Test bash
 profilerate_docker_run --rm jonrad/profilerate-sh:latest #Test sh (ash)
 ```
+## Security
+Profilerate is installed with permissions only for the current user to be able to read/write/execute. The same goes for the destination directory for the files that are profilerated. That is, if you ssh into a different machine as user `jon`, then you'll see the following:
+
+```
+/home/jon # echo $PROFILERATE_DIR
+/home/jon/.config/profilerated/profilerate.nBHogk
+
+/home/jon # ls -ld /home/jon/.config/profilerated/profilerate.nBHogk
+     4 drwx------    3 jon     jon          4096 Feb 26 11:33 /home/jon/.config/profilerated/profilerate.nBHogk
+```
+
+This should be sufficient in most cases. HOWEVER, if you are sharing an account with multiple others, they will be able to see inside your profilerated files. If this is a concern, I highly recommend not putting anything sensitive inside your profilerate directory (such as API keys). In addition, if you don't trust the other people sharing that account, they could potentially modify your profilerate files to cause you to run commands you don't want to. However, that's the case regardless of whether you use profilerate or not since they may modify any profile file and rename commands/variables. 
+
+**tldr:** Don't share an account. And if you must, hopefully you trust those people. But keep yourself safe. Don't put sensitive information in profilerate
 
 ## Developing Profilerate
-These directions are for people who want to add functionality to profilerate itself and share them with the world (Thank you!). This is *not* for your own personalization 
+These directions are for people who want to add functionality to profilerate itself and share them with the world (Thank you!). This is **not** for your own personalization 
 
 * First, clone this repo:
 ```
@@ -80,23 +98,39 @@ source profilerate.sh
 ./run-tests.sh
 ```
 
-## Testing
-These directions are for people who want to add functionality to profilerate itself and share them with the world (Thank you!). This is *not* for your own personalization 
+## Automated Tests
+These directions are for people who want to add functionality to profilerate itself and share them with the world (Thank you!). This is **not** for your own personalization 
 
-Finish me
+Background: Tests use [bats-core](https://github.com/bats-core/bats-core) and must be run within a docker container (For reproducibility and to help with some networking goodness). All tests and docker images required for the tests can be found in the `./testing` directory. 
 
-## Security
-Profilerate is installed with permissions only for the current user to be able to read/write/execute. The same goes for the destination directory for the files that are profilerated. That is, if you ssh into a different machine as user `jon`, then you'll see the following:
-
+The simplest way to run automated tests:
 ```
-/home/jon # echo $PROFILERATE_DIR
-/home/jon/.config/profilerated/profilerate.nBHogk
+# Run all tests in a docker container and clean up
+./run-tests.sh
 
-/home/jon # ls -ld /home/jon/.config/profilerated/profilerate.nBHogk
-     4 drwx------    3 jon     jon          4096 Feb 26 11:33 /home/jon/.config/profilerated/profilerate.nBHogk
+# Run tests that match the word docker
+./run-tests.sh --filter docker
 ```
 
-This should be sufficient in most cases. HOWEVER, if you are sharing an account with multiple others, they will be able to see inside your profilerated files. If this is a concern, I highly recommend not putting anything sensitive inside your profilerate directory (such as API keys). In addition, if you don't trust the other people sharing that account, they could potentially modify your profilerate files to cause you to run commands you don't want to. However, that's the case regardless of whether you use profilerate or not since they may modify any profile file and rename commands/variables. *tldr:* don't share an account. And if you must, hopefully you trust those people.
+You may notice that the kubernetes tests take the longest to run. That's because we spin up a kind cluster, which takes 30-60 seconds, then run the tests, then shut down the cluster. If you're iterating on kubernetes features, this is a pain. But fear not! You can run your tests in interactive mode which won't delete the cluster until you leave interactive mode:
+
+```
+# Run tests in interactive mode. This will put you inside a docker container with your tests
+./run-tests-interactive.sh
+
+# Run kubernetes tests. The first time will take a while as we create our kubernetes cluster
+root@d059b59463e2:/code# bats testing/tests --filter kubectl
+
+# Make some edits and then rerun your tests. This time the test should be much faster
+root@d059b59463e2:/code# bats testing/tests --filter kubectl
+
+# When you're done, exit will delete the kind cluster
+root@d059b59463e2:/code# exit
+Deleting cluster "profilerate-tests" ...
+```
+
+Docker images are not automatically built, so if you make changes to them, make sure to run the `build.sh` command in the specific directory. 
+However, you do not need to push the docker images to a remote repository when iterating on tests. However, before a PR is merged, the images need to be pushed so others can use them.
 
 ## TODO
 
@@ -105,3 +139,4 @@ This should be sufficient in most cases. HOWEVER, if you are sharing an account 
 
 ## Caveats
 * Doesn't work with readonly file systems (yet)
+
