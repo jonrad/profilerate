@@ -25,7 +25,7 @@ _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
 
   if [ -z "$RESULT" ]
   then
-    RESULT=$(mkdir -m 700 -p "/tmp/.profilerated" >/dev/null 2>&1 && mktemp -qd "/tmp/.profilerated/profilerate.XXXXXX")
+    RESULT=$(mktemp -qd "/tmp/.profilerated.XXXXXX")
   fi
 
   if [ -z "$RESULT" ]
@@ -47,14 +47,12 @@ _profilerate_copy () {
 
   # First let's try rsync, it's the most efficient
   if [ -x "$(command -v rsync)" ]; then
-    rsync -e "$RSH" --rsync-path="$DEST" -rp "$PROFILERATE_DIR/." rsync:. >/dev/null 2>&1 && return
+    rsync -e "$RSH" --rsync-path="$DEST/" -r "$PROFILERATE_DIR/." rsync:. >/dev/null 2>&1 && return
   fi
 
   # Try our implementation of tar
   if [ -x "$(command -v tar)" ]; then
-    tar -c -f - -C "$PROFILERATE_DIR" . | eval "$RSH sh -c 'cat > $DEST/.profilerate.tar'" && \
-      eval "$RSH sh -c 'cd $DEST && tar -o -x -f .profilerate.tar && rm .profilerate.tar'" >/dev/null 2>&1 && \
-      return
+    tar -c -f - -C "$PROFILERATE_DIR" . | eval "$RSH sh -c 'cd $DEST && tar -o -x -f -'" >/dev/null 2>&1 && return
   fi
 
   # Loop through all the files and transfer them via cat
@@ -156,20 +154,19 @@ fi
 if [ -x "$(command -v ssh)" ]; then
   # ssh [args] HOST to ssh to host and replicate our environment
   profilerate_ssh () {
-    eval "HOST=\"\${$#}\""
-    __pop_n=$(($# - 1))
-    __pop_index=0
-    __pop_arguments=""
-    while [ $__pop_index -lt $__pop_n ]; do
-      __pop_index=$((__pop_index+1))
-      __pop_arguments="$__pop_arguments \"\${$__pop_index}\""
-    done
-    eval "set -- $__pop_arguments"
+    RSH="ssh $@"
 
     # TODO fix for args with spaces
-    DEST=$(ssh "$@" "$HOST" "$_PROFILERATE_CREATE_DIR" 2>/dev/null) && \
-      _profilerate_copy "ssh $@ $HOST" "$DEST" >&2 && \
-      ssh -t "$@" "$HOST" "$DEST/shell.sh"
+    DEST=$(ssh "$@" "$_PROFILERATE_CREATE_DIR")
+
+    if [ -n "$DEST" ]
+    then
+      _profilerate_copy "$RSH" "$DEST" >&2 && \
+      ssh -t "$@" "$DEST/shell.sh"
+    else
+      echo Failed to profilerate, starting standard shell >&2
+      ssh -t "$@" 'PROFILERATE_SHELL=$(command -v zsh || command -v bash || command -v sh) && "$PROFILERATE_SHELL"'
+    fi
   }
 fi
 
