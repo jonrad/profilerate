@@ -18,8 +18,8 @@ Profilerate is installed in `~/.config/profilerate`
 
 | Command | Description | Example | Notes |
 | - | - | - | - |
-| profilerate_ssh | SSH into remote box and copy your dotfiles with you | `profilerate_ssh [OTHER SSH ARGS] user@host` | `user@host` must be the last arg (does not take a command) |
-| profilerate_kubectl | Exec into kubernetes pod | `profilerate_kubectl [OTHER KUBECTL ARGS] POD ` | Host must be the last arg. |
+| profilerate_ssh | SSH into remote box and copy your dotfiles with you | `profilerate_ssh [OTHER SSH ARGS] DESTINATION` | `DESTINATION` must be the last arg (does not take a command) |
+| profilerate_kubectl | Exec into kubernetes pod | `profilerate_kubectl [OTHER KUBECTL ARGS] POD ` | POD must be the last arg. |
 | profilerate_docker_exec | Exec into docker container | `profilerate_docker_exec [DOCKER EXEC ARGS] CONTAINER_ID` | You must start the docker container first |
 | profilerate_docker_run | Start a docker container and exec into it | `profilerate_docker_run [DOCKER RUN ARGS] IMAGE` | Shuts down the container when you exit. If you don't want the container to shut down, start it yourself and exec in using `profilerate_docker_exec` |
 
@@ -140,6 +140,7 @@ However, you do not need to push the docker images to a remote repository when i
 * Handle fallback when all else fails
 * Refactor and speed up tests
 * Decide how to handle non-standard vi
+* Follow symlinks (especially for things like vimrc)
 
 ## Caveats
 * Doesn't work with readonly file systems (yet)
