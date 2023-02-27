@@ -4,6 +4,8 @@ Take your dotfiles with you when you log in to remote systems using ssh/kubectl/
 
 This is done by create special commands, documented below, that automatically copy the profilerate directory, including all your personalizations, to the systems you log into. 
 
+In addition, profilerate will always try to use the most modern shell available on the remote system (`zsh`, `bash`, `sh` currently supported)
+
 ## Installation/Upgrades
 
 ```
@@ -17,7 +19,7 @@ Profilerate is installed in `~/.config/profilerate`
 | Command | Description | Example | Notes |
 | - | - | - | - |
 | profilerate_ssh | SSH into remote box and copy your dotfiles with you | `profilerate_ssh [OTHER SSH ARGS] user@host` | `user@host` must be the last arg (does not take a command) |
-| profilerate_kubernetes | Exec into kubernetes pod | `profilerate_kubernetes [OTHER KUBECTL ARGS] POD ` | Host must be the last arg. |
+| profilerate_kubectl | Exec into kubernetes pod | `profilerate_kubectl [OTHER KUBECTL ARGS] POD ` | Host must be the last arg. |
 | profilerate_docker_exec | Exec into docker container | `profilerate_docker_exec [DOCKER EXEC ARGS] CONTAINER_ID` | You must start the docker container first |
 | profilerate_docker_run | Start a docker container and exec into it | `profilerate_docker_run [DOCKER RUN ARGS] IMAGE` | Shuts down the container when you exit. If you don't want the container to shut down, start it yourself and exec in using `profilerate_docker_exec` |
 
@@ -44,7 +46,7 @@ fi
 # helpful aliases to not have to type as much
 alias dr="profilerate_docker_run"
 alias de="profilerate_docker_exec"
-alias ke="profilerate_kubernetes"
+alias ke="profilerate_kubectl"
 alias s="profilerate_ssh"
 ```
 
@@ -136,7 +138,12 @@ However, you do not need to push the docker images to a remote repository when i
 
 * Handle readonly file systems by passing everything as a variable? Could this be used to be even more secure?
 * Handle fallback when all else fails
+* Refactor and speed up tests
 
 ## Caveats
 * Doesn't work with readonly file systems (yet)
 
+## Standing on the Shoulders of Giants
+* [zshi](https://github.com/romkatv/zshi) - Script to add init command to zsh
+* [bats-core](https://github.com/bats-core/bats-core) - bats-core, used for testing
+* [kyrat](https://github.com/fsquillace/kyrat) - A simple ssh wrapper script that brings your dotfiles always with you on Linux and OSX
