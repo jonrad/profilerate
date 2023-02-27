@@ -14,7 +14,7 @@ fi
 _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
   if [ ! -d ~/.config ]
   then
-    mkdir -m 700 -p ~/.config || true
+    mkdir -m 700 -p ~/.config >/dev/null 2>&1 || true
   fi
 
   DEST=$(mkdir -m 700 -p ~/.config/profilerated >/dev/null 2>&1 && echo -n ~/.config/profilerated || echo "")
@@ -25,7 +25,7 @@ _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
 
   if [ -z "$RESULT" ]
   then
-    RESULT=$(mkdir -m 700 -p "/tmp/profilerated" >/dev/null 2>&1 && mktemp -qd "/tmp/profilerated/profilerate.XXXXXX")
+    RESULT=$(mkdir -m 700 -p "/tmp/.profilerated" >/dev/null 2>&1 && mktemp -qd "/tmp/.profilerated/profilerate.XXXXXX")
   fi
 
   if [ -z "$RESULT" ]
@@ -39,7 +39,7 @@ _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
   fi
 
   return 1
-}; _profilerate_create_dir; unset _profilerate_create_dir'
+}; _profilerate_create_dir'
 
 _profilerate_copy () {
   RSH=$1
@@ -52,9 +52,7 @@ _profilerate_copy () {
 
   # Try our implementation of tar
   if [ -x "$(command -v tar)" ]; then
-    FILENAME=$(mktemp -u) && \
-      tar -c -f "$FILENAME" -C "$PROFILERATE_DIR" . && \
-      cat $FILENAME | eval "$RSH sh -c 'cat > $DEST/.profilerate.tar'" && \
+    tar -c -f - -C "$PROFILERATE_DIR" . | eval "$RSH sh -c 'cat > $DEST/.profilerate.tar'" && \
       eval "$RSH sh -c 'cd $DEST && tar -o -x -f .profilerate.tar && rm .profilerate.tar'" >/dev/null 2>&1 && \
       return
   fi
@@ -98,10 +96,11 @@ _profilerate_copy () {
 if [ -x "$(command -v docker)" ]; then
   # replicates our configuration to a container before running an interactive bash
   profilerate_docker_cp () {
-    for CONTAINER; do true; done
+    #for CONTAINER; do true; done
 
-    DEST=$(docker exec "$CONTAINER" sh -c "$_PROFILERATE_CREATE_DIR") && \
-      _profilerate_copy "docker exec -i $CONTAINER" $DEST >&2 && \
+    RSH="docker exec -i $@"
+    DEST=$(docker exec "$@" sh -c "$_PROFILERATE_CREATE_DIR") && \
+      _profilerate_copy "$RSH" "$DEST" >&2 && \
       echo $DEST && \
       return
 
@@ -111,8 +110,14 @@ if [ -x "$(command -v docker)" ]; then
   profilerate_docker_exec () {
     for CONTAINER; do true; done
 
-    DEST=$(profilerate_docker_cp "$CONTAINER") &&
+    DEST=$(profilerate_docker_cp "$@")
+    if [ -n "$DEST" ]
+    then
       docker exec -it "$@" "$DEST/shell.sh"
+    else
+      echo Failed to profilerate, starting standard shell >&2
+      docker exec -it "$@" sh -c 'PROFILERATE_SHELL=$(command -v zsh || command -v bash || command -v sh) && "$PROFILERATE_SHELL"'
+    fi
   }
 
   profilerate_docker_run () {
@@ -168,9 +173,9 @@ if [ -x "$(command -v ssh)" ]; then
   }
 fi
 
-### VIM SETUP
+### VIM SETUP (works with neovim as well)
 if [ -f "$PROFILERATE_DIR/vimrc" ]; then
-  export VIMINIT="source \"$PROFILERATE_DIR/vimrc\""
+  export VIMINIT="source $PROFILERATE_DIR/vimrc"
 fi
 
 ### Personal rc file
