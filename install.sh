@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Usage: ./install [DIR]
+# If called without args, downloads the latest version from github and installs
+# If DIR is specified, will install from that directory
+
 set -euo pipefail
 
 cat<<'EOF'
@@ -21,7 +25,14 @@ FILE="https://github.com/jonrad/profilerate/releases/download/main/profilerate.l
 
 echo "Downloading and extracting to $SRC_DIR"
 mkdir -p "$SRC_DIR"
-curl -L "https://github.com/jonrad/profilerate/releases/download/main/profilerate.latest.tar.gz" | tar -xz -C "$SRC_DIR" -f -
+
+if [ -n "${1:-}" ]
+then
+  echo "Installing from $1"
+  "$1/build.sh" && cat "$1/profilerate.latest.tar.gz" | tar -xz -C "$SRC_DIR" -f -
+else
+  curl -L "https://github.com/jonrad/profilerate/releases/download/main/profilerate.latest.tar.gz" | tar -xz -C "$SRC_DIR" -f -
+fi
 
 if [ -n "$HOME" ]
 then
@@ -71,7 +82,10 @@ else
   echo "Already installed in $PROFILE!"
 fi
 
-
 echo
 echo "All done!"
-echo "To get the most use of profilerate, modify ~/.profilerate/personal.sh with your personal settings"
+echo "To get the most use of profilerate, modify ~/.config/profilerate/personal.sh with your personal settings"
+
+# Users personal scripts may fail, so let's remove the flags
+set +euo pipefail
+. ~/.config/profilerate/profilerate.sh
