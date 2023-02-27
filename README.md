@@ -51,7 +51,7 @@ alias s="profilerate_ssh"
 ```
 
 ### vimrc
-Create a vimrc file in the main profilerate directory. It will automatically be loaded using VIMINIT
+Create a vimrc file in the main profilerate directory. It will automatically be loaded using the VIMINIT environment variable, which is supported by both neovim and vim. Note that vi isn't handled due to lack of standardization. For example, busybox vi doesn't have the `source` command, while installing `nvi` on ubuntu does. If you are frequently using busybox/alpine vi, I recommend setting the `EXINIT` environment variable in your `personal.sh`
 
 ### Testing your personal.sh
 I recommend using docker to test the different shells:
@@ -139,6 +139,7 @@ However, you do not need to push the docker images to a remote repository when i
 * Handle readonly file systems by passing everything as a variable? Could this be used to be even more secure?
 * Handle fallback when all else fails
 * Refactor and speed up tests
+* Decide how to handle non-standard vi
 
 ## Caveats
 * Doesn't work with readonly file systems (yet)
