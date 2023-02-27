@@ -114,7 +114,7 @@ if [ -x "$(command -v docker)" ]; then
       docker exec -it "$@" "$DEST/shell.sh"
     else
       echo Failed to profilerate, starting standard shell >&2
-      docker exec -it "$@" sh -c 'PROFILERATE_SHELL=$(command -v zsh || command -v bash || command -v sh) && "$PROFILERATE_SHELL"'
+      docker exec -it "$@" sh -c '$(command -v "$SHELL" || command -v zsh || command -v bash || command -v sh)'
     fi
   }
 
@@ -165,7 +165,7 @@ if [ -x "$(command -v ssh)" ]; then
       ssh -t "$@" "$DEST/shell.sh"
     else
       echo Failed to profilerate, starting standard shell >&2
-      ssh -t "$@" 'PROFILERATE_SHELL=$(command -v zsh || command -v bash || command -v sh) && "$PROFILERATE_SHELL"'
+      ssh -t "$@" '$(command -v "$SHELL" || command -v zsh || command -v bash || command -v sh)'
     fi
   }
 fi
