@@ -27,9 +27,9 @@ Profilerate is pretty useless by itself. What we need to do is make it our own.
 Modify this file with all your shell scripting goodness. For example:
 
 ```
-PS1='$(whoami)@$HOSTNAME:$PWD\$ '
+PS1='${USER=$(id -un)}@$HOSTNAME:$PWD\$ '
 
-if ! ls -lastr --color=auto >/dev/null 2>&1
+if ! ls -l --color=auto >/dev/null 2>&1
 then
   alias ls="ls -lG"
 else
