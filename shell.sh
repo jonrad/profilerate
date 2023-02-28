@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
-### DO NOT CALL THIS FILE YOURSELF ###
-### FOR SERIOUS ###
+### Note, this will delete your PROFILERATE_DIR after running. So don't run this manually unless you know what you're doing
 
 profilerate_shell() {
   PROFILERATE_DIR="$(dirname "$0")"

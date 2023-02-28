@@ -114,7 +114,7 @@ if [ -x "$(command -v docker)" ]; then
       docker exec -it "$@" "$DEST/shell.sh"
     else
       echo Failed to profilerate, starting standard shell >&2
-      docker exec -it "$@" sh -c '$(command -v "$SHELL" || command -v zsh || command -v bash || command -v sh)'
+      docker exec -it "$@" sh -c '$(command -v "$SHELL" || command -v zsh || command -v bash || command -v sh) -l'
     fi
   }
 
@@ -133,20 +133,18 @@ fi
 if [ -x "$(command -v kubectl)" ]; then
   # replicates our configuration to a remote env before running an interactive shell
   profilerate_kubectl () {
-    eval "POD=\"\${$#}\""
-    __pop_n=$(($# - 1))
-    __pop_index=0
-    __pop_arguments=""
-    while [ $__pop_index -lt $__pop_n ]; do
-      __pop_index=$((__pop_index+1))
-      __pop_arguments="$__pop_arguments \"\${$__pop_index}\""
-    done
-    eval "set -- $__pop_arguments"
-
     # TODO fix for args having spaces
-    DEST=$(kubectl exec "$@" $POD -- sh -c "$_PROFILERATE_CREATE_DIR") && \
-      _profilerate_copy "kubectl exec -i $ARGS $POD --" "$DEST" >&2 && \
-      kubectl exec -it "$@" $POD -- "$DEST/shell.sh"
+    DEST=$(kubectl exec -i "$@" -- sh -c "$_PROFILERATE_CREATE_DIR")
+
+    if [ -n "$DEST" ]
+    then
+      RSH="kubectl exec -i $@ --"
+      _profilerate_copy "$RSH" "$DEST" >&2 && \
+        kubectl exec -it "$@" -- "$DEST/shell.sh"
+    else
+      echo Failed to profilerate, starting standard shell >&2
+      kubectl exec -it "$@" -- sh -c '$(command -v "$SHELL" || command -v zsh || command -v bash || command -v sh) -l'
+    fi
   }
 fi
 
@@ -165,7 +163,7 @@ if [ -x "$(command -v ssh)" ]; then
       ssh -t "$@" "$DEST/shell.sh"
     else
       echo Failed to profilerate, starting standard shell >&2
-      ssh -t "$@" '$(command -v "$SHELL" || command -v zsh || command -v bash || command -v sh)'
+      ssh -t "$@" '$(command -v "$SHELL" || command -v zsh || command -v bash || command -v sh) -l'
     fi
   }
 fi
