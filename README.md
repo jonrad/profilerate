@@ -39,7 +39,7 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 
 ## Installation/Upgrades
 
-```
+```bash
 bash <(curl https://raw.githubusercontent.com/jonrad/profilerate/main/install.sh)
 ```
 
@@ -62,7 +62,7 @@ Profilerate is pretty useless by itself. What we need to do is make it our own.
 
 Modify this file with all your shell scripting goodness. For example:
 
-```
+```bash
 # Make a consistent PS1 that helps us identify who and where we are
 PS1='${USER=$(id -un)}@$HOSTNAME:$PWD\$ '
 
@@ -86,7 +86,7 @@ Create a vimrc file in the main profilerate directory. It will automatically be 
 
 ### Testing your personal.sh
 I recommend using docker to test the different shells:
-```
+```bash
 profilerate_docker_run --rm jonrad/profilerate-zsh:latest #Test zsh
 profilerate_docker_run --rm jonrad/profilerate-bash:v1 #Test bash
 profilerate_docker_run --rm jonrad/profilerate-sh:latest #Test sh (ash)
@@ -110,24 +110,24 @@ This should be sufficient in most cases. HOWEVER, if you are sharing an account 
 These directions are for people who want to add functionality to profilerate itself and share them with the world (Thank you!). This is **not** for your own personalization
 
 * First, clone this repo:
-```
+```bash
 git clone git@github.com:jonrad/profilerate.git
 ```
 
 * In a shell, change the environment variable `PROFILERATE_DIR` to the repo path:
-```
+```bash
 cd ./profilerate
 export PROFILERATE_DIR=$PWD
 ```
 
 * Now make the changes, after which point you can source `profilerate.sh` in the same shell as above and validate
-```
+```bash
 source profilerate.sh
 # Do your validation
 ```
 
 * Once everything works, make sure all the tests still work (See Testing below)
-```
+```bash
 ./run-tests.sh
 ```
 
@@ -137,7 +137,7 @@ These directions are for people who want to add functionality to profilerate its
 Background: Tests use [bats-core](https://github.com/bats-core/bats-core) and must be run within a docker container (For reproducibility and to help with some networking goodness). All tests and docker images required for the tests can be found in the `./testing` directory.
 
 The simplest way to run automated tests:
-```
+```bash
 # Run all tests in a docker container and clean up
 ./run-tests.sh
 
@@ -147,7 +147,7 @@ The simplest way to run automated tests:
 
 You may notice that the kubernetes tests take the longest to run. That's because we spin up a kind cluster, which takes 30-60 seconds, then run the tests, then shut down the cluster. If you're iterating on kubernetes features, this is a pain. But fear not! You can run your tests in interactive mode which won't delete the cluster until you leave interactive mode:
 
-```
+```bash
 # Run tests in interactive mode. This will put you inside a docker container with your tests
 ./run-tests-interactive.sh
 
