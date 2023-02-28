@@ -12,11 +12,10 @@ docker_run () {
   local IMAGE=$1
   local PREP=$2
   shift
-  install /tmp/.my_profile
   CONTAINER=$(docker run --rm --detach $IMAGE sh -c "$PREP; sleep infinity")
 
   run expect <<EOF
-spawn sh -c "cd /tmp/.my_profile/;. /tmp/.my_profile/profilerate.sh; profilerate_docker_exec -u readonly $CONTAINER"
+spawn sh -c "cd $INSTALL_DIR;. $INSTALL_DIR/profilerate.sh; profilerate_docker_exec -u readonly $CONTAINER"
 expect "READY: "
 send "alias TEST_ALIAS\r"
 send "echo \\\$TEST_ENV\r"

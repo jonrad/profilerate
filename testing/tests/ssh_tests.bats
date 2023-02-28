@@ -14,7 +14,6 @@ ssh_run () {
   local SSH_ARGS=$3
   local PROMPT=${4:-"READY: "}
   shift
-  install /tmp/.my_profile
 
   local CONTAINER_ID=$(docker run --init --detach --rm $IMAGE)
   local IP=$(docker inspect -f "{{ .NetworkSettings.IPAddress }}" $CONTAINER_ID)
@@ -41,7 +40,7 @@ ssh_run () {
   fi
 
   run expect <<EOF
-spawn sh -c "cd /tmp/.my_profile/; . /tmp/.my_profile/profilerate.sh; $SSH_COMMAND"
+spawn sh -c "cd $INSTALL_DIR; . $INSTALL_DIR/profilerate.sh; $SSH_COMMAND"
 expect "$PROMPT"
 send "alias TEST_ALIAS\r"
 send "echo \\\$TEST_ENV\r"

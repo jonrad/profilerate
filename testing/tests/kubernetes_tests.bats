@@ -28,8 +28,6 @@ teardown () {
 }
 
 @test "profilerate_kubectl bash" {
-  install /tmp/.my_profile
-
   kind load docker-image --name profilerate-tests jonrad/profilerate-bash:v1
   # It feels so wrong to start pods from the command line...
   # this is a bit silly, but it gets the job done
@@ -48,7 +46,7 @@ teardown () {
   done
 
   run expect <<EOF
-spawn sh -c "cd /tmp/.my_profile/; . /tmp/.my_profile/profilerate.sh; profilerate_kubectl bash"
+spawn sh -c "cd $INSTALL_DIR; . $INSTALL_DIR/profilerate.sh; profilerate_kubectl bash"
 expect "READY: "
 send "alias TEST_ALIAS\r"
 send "echo \\\$TEST_ENV\r"
