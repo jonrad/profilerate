@@ -2,9 +2,40 @@
 
 Take your dotfiles with you when you log in to remote systems using ssh/kubectl/docker, without impacting other people on the system.
 
-This is done by create special commands, documented below, that automatically copy the profilerate directory, including all your personalizations, to the systems you log into. 
+This is done by create special commands, documented below, that automatically copy the profilerate directory, including all your personalizations, to the systems you log into.
 
 In addition, profilerate will always try to use the most modern shell available on the remote system (`zsh`, `bash`, `sh` currently supported)
+
+Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
+
+# Table of Contents
+
+- [Features](#features)
+- [Installation/Upgrades](#installationupgrades)
+- [Commands](#commands)
+- [Personalizing](#personalizing)
+  - [personal.sh](#personalsh)
+  - [vimrc](#vimrc)
+  - [Testing your personal.sh](#testing-your-personalsh)
+- [Security](#security)
+- [Developing Profilerate](#developing-profilerate)
+- [Automated Tests](#automated-tests)
+- [TODO](#todo)
+- [Caveats](#caveats)
+- [Standing on the Shoulders of Giants](#standing-on-the-shoulders-of-giants)
+
+
+## Features
+
+* Copy your startup scripts (dotfiles) with you when you log into remote systems
+* Does not impact any of the remote rc files (does not impact other people on the system, even if they share the same user)
+* Supports `ssh`, `kubectl exec`, `docker run` and `docker exec`
+* Uses fastest file transfer, with fallbacks: `rsync`, followed by `tar`, and finally falling back to manual single file transfer (no requirements for anything to be installed on remote system)
+* Uses most modern shell with fallbacks: `zsh`, then `bash`, then `sh`
+* Transfers files to `HOME` directory first and falls back to `tmp` directory if `HOME` doesn't exist or is readonly
+* Supports both neovim and vim (with limited support for vi. See Section on vim, below)
+* Is not limited to text files - Can transfer binary files if you feel they will be compatible with the remote system
+* When all else fails, will fall back to using standard commands without profilerate (eg. when the remote file system is completely readonly)
 
 ## Installation/Upgrades
 
@@ -25,7 +56,7 @@ Profilerate is installed in `~/.config/profilerate`
 
 ## Personalizing
 
-Profilerate is pretty useless by itself. What we need to do is make it our own. 
+Profilerate is pretty useless by itself. What we need to do is make it our own.
 
 ### personal.sh
 
@@ -71,12 +102,12 @@ Profilerate is installed with permissions only for the current user to be able t
      4 drwx------    3 jon     jon          4096 Feb 26 11:33 /home/jon/.config/profilerated/profilerate.nBHogk
 ```
 
-This should be sufficient in most cases. HOWEVER, if you are sharing an account with multiple others, they will be able to see inside your profilerated files. If this is a concern, I highly recommend not putting anything sensitive inside your profilerate directory (such as API keys). In addition, if you don't trust the other people sharing that account, they could potentially modify your profilerate files to cause you to run commands you don't want to. However, that's the case regardless of whether you use profilerate or not since they may modify any profile file and rename commands/variables. 
+This should be sufficient in most cases. HOWEVER, if you are sharing an account with multiple others, they will be able to see inside your profilerated files. If this is a concern, I highly recommend not putting anything sensitive inside your profilerate directory (such as API keys). In addition, if you don't trust the other people sharing that account, they could potentially modify your profilerate files to cause you to run commands you don't want to. However, that's the case regardless of whether you use profilerate or not since they may modify any profile file and rename commands/variables.
 
 **tldr:** Don't share an account. And if you must, hopefully you trust those people. But keep yourself safe. Don't put sensitive information in profilerate
 
 ## Developing Profilerate
-These directions are for people who want to add functionality to profilerate itself and share them with the world (Thank you!). This is **not** for your own personalization 
+These directions are for people who want to add functionality to profilerate itself and share them with the world (Thank you!). This is **not** for your own personalization
 
 * First, clone this repo:
 ```
@@ -101,9 +132,9 @@ source profilerate.sh
 ```
 
 ## Automated Tests
-These directions are for people who want to add functionality to profilerate itself and share them with the world (Thank you!). This is **not** for your own personalization 
+These directions are for people who want to add functionality to profilerate itself and share them with the world (Thank you!). This is **not** for your own personalization
 
-Background: Tests use [bats-core](https://github.com/bats-core/bats-core) and must be run within a docker container (For reproducibility and to help with some networking goodness). All tests and docker images required for the tests can be found in the `./testing` directory. 
+Background: Tests use [bats-core](https://github.com/bats-core/bats-core) and must be run within a docker container (For reproducibility and to help with some networking goodness). All tests and docker images required for the tests can be found in the `./testing` directory.
 
 The simplest way to run automated tests:
 ```
@@ -131,15 +162,15 @@ root@d059b59463e2:/code# exit
 Deleting cluster "profilerate-tests" ...
 ```
 
-Docker images are not automatically built, so if you make changes to them, make sure to run the `build.sh` command in the specific directory. 
+Docker images are not automatically built, so if you make changes to them, make sure to run the `build.sh` command in the specific directory.
 However, you do not need to push the docker images to a remote repository when iterating on tests. However, before a PR is merged, the images need to be pushed so others can use them.
 
 ## TODO
 
+* Move this TODO list to issues
 * Handle readonly file systems by passing everything as a variable? Could this be used to be even more secure?
 * Handle fallback when all else fails
 * Refactor and speed up tests
-* Decide how to handle non-standard vi
 * Follow symlinks (especially for things like vimrc)
 
 ## Caveats
