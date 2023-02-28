@@ -14,9 +14,8 @@ RUN mkdir -p /root/.ssh \
 
 RUN apk add tini rsync
 
+RUN echo "PS1=DEFAULTPROMPT: " >> /etc/profile
 RUN echo "export ETC_PROFILE=1" >> /etc/profile
 RUN echo "export HOME_BASH_PROFILE=1" >> /root/.bash_profile
-
-RUN apk add neovim
 
 ENTRYPOINT [ "tini", "--", "sh", "-c", "rc-status; rc-service sshd start; sleep infinity" ]

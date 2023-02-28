@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bash-readonly
+spec:
+  containers:
+  - name: bash
+    image: jonrad/profilerate-bash-readonly:v1
+    securityContext:
+      runAsUser: 1000

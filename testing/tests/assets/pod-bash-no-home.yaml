@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bash-no-home
+spec:
+  containers:
+  - name: bash
+    image: jonrad/profilerate-bash-no-home:v1
+    securityContext:
+      runAsUser: 1000

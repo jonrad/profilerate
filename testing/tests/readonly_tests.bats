@@ -9,14 +9,13 @@ teardown () {
 }
 
 docker_run () {
-  local IMAGE=$1
-  local PREP=$2
-  shift
+  PROMPT=${PROMPT:-"READY:"}
+  PREP=${PREP:-"echo"}
   CONTAINER=$(docker run --rm --detach $IMAGE sh -c "$PREP; sleep infinity")
 
   run expect <<EOF
 spawn sh -c "cd $INSTALL_DIR;. $INSTALL_DIR/profilerate.sh; profilerate_docker_exec -u readonly $CONTAINER"
-expect "READY: "
+expect "$PROMPT"
 send "alias TEST_ALIAS\r"
 send "echo \\\$TEST_ENV\r"
 send "TEST_FUNCTION\r"
@@ -28,7 +27,9 @@ EOF
 }
 
 @test "no home dir" {
-  docker_run "jonrad/profilerate-sh:latest" "adduser -D -H readonly"
+  export IMAGE="jonrad/profilerate-sh:latest" 
+  export PREP="adduser -D -H readonly"
+  docker_run 
 
   assert_output --partial "env-good"
   assert_output --partial "alias-good"
@@ -36,8 +37,10 @@ EOF
 }
 
 @test "tmp dir readonly" {
-  docker_run "jonrad/profilerate-sh:latest" "adduser -D -H readonly; chmod 700 /tmp"
+  export IMAGE="jonrad/profilerate-bash-readonly:v1"
+  export PROMPT="DEFAULTPROMPT:"
+  docker_run 
 
   assert_output --partial "Failed to profilerate"
-  assert_output --partial "/ $"
+  assert_output --partial "DEFAULTPROMPT:"
 }

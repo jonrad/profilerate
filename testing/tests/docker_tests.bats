@@ -77,3 +77,5 @@ EOF
 
   assert_output --partial "FOO IS BAR SPACES"
 }
+
+# TODO add HOME dir has spaces
