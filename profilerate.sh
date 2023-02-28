@@ -173,6 +173,11 @@ if [ -f "$PROFILERATE_DIR/vimrc" ]; then
   export VIMINIT="source $PROFILERATE_DIR/vimrc"
 fi
 
+### Inputrc setup
+if [ -f "$PROFILERATE_DIR/inputrc" ]; then
+  export INPUTRC="$PROFILERATE_DIR/inputrc"
+fi
+
 ### Personal rc file
 if [ -f "$PROFILERATE_DIR/personal.sh" ]; then
   . "$PROFILERATE_DIR/personal.sh"

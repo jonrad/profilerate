@@ -2,9 +2,7 @@
 
 Take your dotfiles with you when you log in to remote systems using ssh/kubectl/docker, without impacting other people on the system.
 
-This is done by create special commands, documented below, that automatically copy the profilerate directory, including all your personalizations, to the systems you log into.
-
-In addition, profilerate will always try to use the most modern shell available on the remote system (`zsh`, `bash`, `sh` currently supported)
+This is done by create special commands that automatically copy the `profilerate` directory, including all your personalizations, to the systems you log into.
 
 Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 
@@ -16,6 +14,7 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 - [Personalizing](#personalizing)
   - [personal.sh](#personalsh)
   - [vimrc](#vimrc)
+  - [inputrc](#inputrc)
   - [Testing your personal.sh](#testing-your-personalsh)
 - [Security](#security)
 - [Developing Profilerate](#developing-profilerate)
@@ -34,6 +33,7 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 * Uses most modern shell with fallbacks: `zsh`, then `bash`, then `sh`
 * Transfers files to `HOME` directory first and falls back to `tmp` directory if `HOME` doesn't exist or is readonly
 * Supports both neovim and vim (with limited support for vi. See Section on vim, below)
+* Supports inputrc
 * Is not limited to text files - Can transfer binary files if you feel they will be compatible with the remote system
 * When all else fails, will fall back to using standard commands without profilerate (eg. when the remote file system is completely readonly)
 
@@ -82,7 +82,10 @@ alias s="profilerate_ssh"
 ```
 
 ### vimrc
-Create a vimrc file in the main profilerate directory. It will automatically be loaded using the VIMINIT environment variable, which is supported by both neovim and vim. Note that vi isn't handled due to lack of standardization. For example, busybox vi doesn't have the `source` command, while installing `nvi` on ubuntu does. If you are frequently using busybox/alpine vi, I recommend setting the `EXINIT` environment variable in your `personal.sh`
+Create a `vimrc` (no dot) file in the main profilerate directory. It will automatically be loaded using the VIMINIT environment variable, which is supported by both neovim and vim. Note that vi isn't handled due to lack of standardization. For example, busybox vi doesn't have the `source` command, while installing `nvi` on ubuntu does. If you are frequently using busybox/alpine vi, I recommend setting the `EXINIT` environment variable in your `personal.sh`
+
+### inputrc
+Create a `inputrc` (no dot) file in the main profilerate directory. It will be loaded by setting the INPUTRC environment variable.
 
 ### Testing your personal.sh
 I recommend using docker to test the different shells:
