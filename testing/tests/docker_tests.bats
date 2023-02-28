@@ -11,10 +11,9 @@ teardown () {
 docker_run () {
   local IMAGE=$1
   shift
-  install /tmp/.my_profile
 
   run expect <<EOF
-spawn sh -c "cd /tmp/.my_profile/;. /tmp/.my_profile/profilerate.sh; profilerate_docker_run --rm $IMAGE"
+spawn sh -c "cd $INSTALL_DIR;. $INSTALL_DIR/profilerate.sh; profilerate_docker_run --rm $IMAGE"
 expect "READY: "
 send "alias TEST_ALIAS\r"
 send "echo \\\$TEST_ENV\r"
