@@ -188,7 +188,7 @@ Modify this file with all your shell scripting goodness. For example:
 
 ```bash
 # Make a consistent PS1 that helps us identify who and where we are
-PS1='${USER=$(id -un)}@$HOSTNAME:$PWD\$ '
+PS1='${USER:=$(id -un)}@$HOSTNAME:$PWD\$ '
 
 # Add color to our ls command
 if ! ls -l --color=auto >/dev/null 2>&1
