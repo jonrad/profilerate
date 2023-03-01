@@ -59,28 +59,22 @@ cp -R "$SRC_DIR/" "$DEST_DIR/"
 # clean up
 rm -rf "$SRC_DIR"
 
-# Todo stop assuming zsh is the preferred shell
-if [ -f ~/.zshrc ]
-then
-  PROFILE=$(echo ~/.zshrc)
-elif [ -f ~/.bashrc ]
-then
-  PROFILE=$(echo ~/.bashrc)
-elif [ -f ~/.profile ]
-then
-  PROFILE=$(echo ~/.profile)
-else
-  touch ~/.profile
-  PROFILE=$(echo ~/.profile)
-fi
+INSTALL_PATHS=( ~/.zshrc ~/.bash_profile )
+for INSTALL_PATH in "${INSTALL_PATHS[@]}"
+do
+  if [ ! -f "$INSTALL_PATH" ]
+  then
+    touch "$INSTALL_PATH"
+  fi
 
-if ! grep -q ". ~/.config/profilerate/profilerate.sh" "$PROFILE"
-then
-  echo ". ~/.config/profilerate/profilerate.sh" >> "$PROFILE"
-  echo "Installed to $PROFILE"
-else
-  echo "Already installed in $PROFILE!"
-fi
+  if ! grep -q ". ~/.config/profilerate/profilerate.sh" "$INSTALL_PATH"
+  then
+    echo ". ~/.config/profilerate/profilerate.sh" >> "$INSTALL_PATH"
+    echo "Installed to $INSTALL_PATH"
+  else
+    echo "Already installed in $INSTALL_PATH"
+  fi
+done
 
 echo
 echo "All done!"
