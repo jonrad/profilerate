@@ -11,6 +11,11 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 - [Features](#features)
 - [Installation/Upgrades](#installationupgrades)
 - [Commands](#commands)
+  - [SSH Examples](#ssh-examples)
+  - [Docker examples](#docker-examples)
+    - [Docker Run](#docker-run)
+    - [Docker Exec](#docker-exec)
+  - [Kubernetes](#kubernetes)
 - [Personalizing](#personalizing)
   - [personal.sh](#personalsh)
   - [vimrc](#vimrc)
@@ -49,10 +54,129 @@ Profilerate is installed in `~/.config/profilerate`
 
 | Command | Description | Example | Notes |
 | - | - | - | - |
-| profilerate_ssh | SSH into remote box and copy your dotfiles with you | `profilerate_ssh [OTHER SSH ARGS] DESTINATION` | `DESTINATION` must be the last arg (does not take a command) |
-| profilerate_kubectl | Exec into kubernetes pod | `profilerate_kubectl [OTHER KUBECTL ARGS] POD ` | POD must be the last arg. |
-| profilerate_docker_exec | Exec into docker container | `profilerate_docker_exec [DOCKER EXEC ARGS] CONTAINER_ID` | You must start the docker container first |
-| profilerate_docker_run | Start a docker container and exec into it | `profilerate_docker_run [DOCKER RUN ARGS] IMAGE` | Shuts down the container when you exit. If you don't want the container to shut down, start it yourself and exec in using `profilerate_docker_exec` |
+| profilerate_ssh | SSH into remote box and copy your dotfiles with you. Takes the same arguments as the standard `ssh` command | `profilerate_ssh [OTHER SSH ARGS] DESTINATION` | `DESTINATION` must be the last arg (does not take a command) |
+| profilerate_kubectl | Exec into kubernetes pod. Takes the same arguments as the `kubectl exec` command | `profilerate_kubectl [OTHER KUBECTL ARGS] POD ` | POD must be the last arg. |
+| profilerate_docker_exec | Exec into docker container. Takes the same arguments as the `docker exec` command | `profilerate_docker_exec [DOCKER EXEC ARGS] CONTAINER_ID` | You must start the docker container first |
+| profilerate_docker_run | Start a docker container and exec into it. Takes the same arguments as the `docker run` command | `profilerate_docker_run [DOCKER RUN ARGS] IMAGE` | Shuts down the container when you exit. If you don't want the container to shut down, start it yourself and exec in using `profilerate_docker_exec` |
+
+### SSH Examples
+
+Basic example:
+```console
+# Show what I set up as my personal.sh file (see below for customizing)
+jonrad@local$ cat $PROFILERATE_DIR/personal.sh
+PS1='${USER:-$(whoami)}@$HOSTNAME$ ' # user@hostname prompt
+alias ls="ls -la" # Show hidden files and use long format
+
+# profilerate SSH into a remote machine
+jonrad@local$ profilerate_ssh ubuntu@remote-machine
+ubuntu@remote-machine$ echo $PS1 #Note that the PS1 followed me
+${USER:-$(whoami)}@$HOSTNAME$
+
+# show how ls uses the alias i defined in my personal.sh
+ubuntu@remote-machine$ ls
+total 20
+drwx------    1 ubuntu   ubuntu        4096 Mar  1 12:06 .
+drwxr-xr-x    1 ubuntu   ubuntu        4096 Mar  1 12:06 ..
+-rw-r--r--    1 ubuntu   ubuntu          27 Feb 28 21:28 .bash_profile
+drwx------    3 ubuntu   ubuntu        4096 Mar  1 12:06 .config
+drwx------    2 ubuntu   ubuntu        4096 Feb 21 23:00 .ssh
+
+# note that there is now a special $PROFILERATE_DIR variable that has the location of your profilerate files
+ubuntu@remote-machine$ ls -ld $PROFILERATE_DIR/
+drwx------    6 ubuntu   ubuntu        4096 Mar  1 12:06 /home/ubuntu/.config/profilerated/profilerate.aCohPC/
+
+# This is the same as the one on your local machine
+ubuntu@remote-machine$ cat $PROFILERATE_DIR/personal.sh
+PS1='${USER:-$(whoami)}@$HOSTNAME$ '
+alias ls="ls -la" # Show hidden files and use long format
+```
+
+More examples:
+```console
+# Equivalent to: ssh -t -i ~/.ssh/id_rsa 192.168.0.1
+$ profilerate_ssh -i ~/.ssh/id_rsa 192.168.0.1
+
+# profilerate_ssh passes all args to ssh, except for command. So it supports all args of ssh
+$ profilerate_ssh # Your output may vary depending on your flavor of ssh
+profilerate_ssh has the same args as ssh, except for [command]. See below
+usage: ssh [-46AaCfGgKkMNnqsTtVvXxYy] [-B bind_interface]
+           [-b bind_address] [-c cipher_spec] [-D [bind_address:]port]
+           [-E log_file] [-e escape_char] [-F configfile] [-I pkcs11]
+           [-i identity_file] [-J [user@]host[:port]] [-L address]
+           [-l login_name] [-m mac_spec] [-O ctl_cmd] [-o option] [-p port]
+           [-Q query_option] [-R address] [-S ctl_path] [-W host:port]
+           [-w local_tun[:remote_tun]] destination [command]
+```
+
+### Docker examples
+
+#### Docker Run
+**Note:** See ssh example, above, for full walk through.
+
+`profilerate_docker_run` is used to start up a container, send the contents of your profilerate dir, start up a shell, and then cleanup once you exit the shell:
+
+```console
+jonrad@local$ profilerate_docker_run alpine
+root@bdec5a2fb003$ cd ~
+root@bdec5a2fb003$ ls
+total 16
+drwx------    1 root     root          4096 Mar  1 13:16 .
+drwxr-xr-x    1 root     root          4096 Mar  1 13:16 ..
+-rw-------    1 root     root             8 Mar  1 13:16 .ash_history
+drwx------    3 root     root          4096 Mar  1 13:16 .config
+root@bdec5a2fb003$
+
+# you can pass all the same args as "docker run"
+jonrad@local$ profilerate_docker_run -e "ENV_VAR=foo" -v /tmp/shared:/shared "alpine"
+root@dd03ec236aee$ echo $ENV_VAR
+foo
+root@dd03ec236aee$ ls /shared
+total 8
+drwxr-xr-x    3 root     root            96 Mar  1 13:18 .
+drwxr-xr-x    1 root     root          4096 Mar  1 13:19 ..
+-rw-r--r--    1 root     root             6 Mar  1 13:18 hello
+```
+
+#### Docker Exec
+**Note:** See ssh example, above, for full walk through.
+
+`profilerate_docker_exec` is used to exec into a container that has already been started. First it sends the contents of the profilerate dir then it starts up a shell with your personal file executed.
+
+```console
+jonrad@local$ docker run --rm --detach --name "my-container" alpine sleep infinity
+a6fbb0085c6feefeea043c3fe5aed2e019bb005e8808ca8513dc30462e77a213
+jonrad@local$ docker ps
+CONTAINER ID   IMAGE     COMMAND            CREATED         STATUS         PORTS     NAMES
+a6fbb0085c6f   alpine    "sleep infinity"   2 seconds ago   Up 2 seconds             my-container
+
+jonrad@local$ profilerate_docker_exec my-container
+root@a6fbb0085c6f$
+
+# You can pass in all the same args as "docker exec"
+jonrad@local$ profilerate_docker_exec -e FOO=BAR my-container
+root@a6fbb0085c6f$ echo $FOO
+BAR
+```
+
+### Kubernetes
+**Note:** See ssh example, above, for full walk through.
+
+`profilerate_kubectl` is used to exec into a kubernetes pod, just like `kubectl exec`
+```console
+jonrad@local$ kubectl get po -A
+NAMESPACE            NAME                                                      READY   STATUS    RESTARTS   AGE
+default              nginx                                                     1/1     Running   0          66s
+kube-system          coredns-565d847f94-2kc97                                  1/1     Running   0          2m24s
+
+jonrad@local$ profilerate_kubectl -n default nginx
+# Note that it brought our PS1 with us as well as our ls alias
+root@nginx$ ls
+total 96
+drwxr-xr-x   1 root root 4096 Mar  1 21:26 .
+drwxr-xr-x   1 root root 4096 Mar  1 21:26 ..
+drwxr-xr-x   2 root root 4096 Feb 27 00:00 bin
+```
 
 ## Personalizing
 
