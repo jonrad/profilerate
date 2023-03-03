@@ -1,12 +1,19 @@
 #!/usr/bin/env sh
 
-if [ -z "${PROFILERATE_DIR:-}" ]; then
+if [ -z "${PROFILERATE_DIR:-}" ]
+then
   PROFILERATE_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
   export PROFILERATE_DIR
 fi
 
-if [ -z "${PROFILERATE_SHELL:-}" ]; then
-  PROFILERATE_SHELL=$(basename "$SHELL")
+if [ -z "$PROFILERATE_SHELL" ]
+then
+  if [ -n "$SHELL" ]
+  then
+    PROFILERATE_SHELL=$(basename "$SHELL")
+  else
+    PROFILERATE_SHELL="sh"
+  fi
 fi
 
 # TODO deal with no mktemp
