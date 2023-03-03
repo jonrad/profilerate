@@ -213,3 +213,6 @@ fi
 if [ -f "$PROFILERATE_DIR/personal.sh" ]; then
   . "$PROFILERATE_DIR/personal.sh"
 fi
+
+# If running a subshell, having a preset PROFILERATE_SHELL will confuse it, so unset
+unset PROFILERATE_SHELL
