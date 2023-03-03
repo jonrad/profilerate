@@ -21,38 +21,39 @@ https://github.com/jonrad/profilerate
 EOF
 
 install () {
-  local SRC_DIR="$(mktemp -d)"
-
-  echo "Downloading and extracting to $SRC_DIR"
-  mkdir -p "$SRC_DIR"
-
-  if [ -n "${1:-}" ]
-  then
-    echo "Installing from $1"
-    "$1/build.sh" && tar -xz -C "$SRC_DIR" -f - < "$1/profilerate.latest.tar.gz" 
-  else
-    curl -L "https://github.com/jonrad/profilerate/releases/download/main/profilerate.latest.tar.gz" | tar -xz -C "$SRC_DIR" -f -
-  fi
-
   local HOME=${HOME:-$(echo -n ~)}
 
-  mkdir -p -m 700 "$HOME/.config"
-  mkdir -p -m 700 "$HOME/.config/profilerate"
+  if [ ! -d "$HOME" ]
+  then
+    echo "HOME is '$HOME' which isn't a directory. That's kind of weird"
+    exit 1
+  fi
+
   local DEST_DIR="$HOME/.config/profilerate"
 
+  # shellcheck disable=SC2174
+  mkdir -p -m 700 "$HOME/.config"
+  # shellcheck disable=SC2174
+  mkdir -p -m 700 "$HOME/.config/profilerate"
   echo "Installing to $DEST_DIR"
-  mkdir -p "$DEST_DIR"
+
+  local UNTAR_COMMAND="tar -xz -C $DEST_DIR -f -"
 
   # Don't override the personal file if it exists
   if [ -f "$DEST_DIR/personal.sh" ]
   then
-    rm "$SRC_DIR/personal.sh"
+    UNTAR_COMMAND="$UNTAR_COMMAND --exclude personal.sh"
   fi
 
-  cp -R "$SRC_DIR/" "$DEST_DIR/"
+  echo "Downloading and extracting..."
 
-  # clean up
-  rm -rf "$SRC_DIR"
+  if [ -n "${1:-}" ]
+  then
+    echo "Installing from $1"
+    "$1/build.sh" && $UNTAR_COMMAND < "$1/profilerate.latest.tar.gz" 
+  else
+    curl -L "https://github.com/jonrad/profilerate/releases/download/main/profilerate.latest.tar.gz" | $UNTAR_COMMAND
+  fi
 
   local INSTALL_PATHS=( ~/.zshrc ~/.bashrc )
   for INSTALL_PATH in "${INSTALL_PATHS[@]}"
@@ -79,4 +80,6 @@ echo "To get the most use of profilerate, modify ~/.config/profilerate/personal.
 
 # Users personal scripts may fail, so let's remove the flags
 set +euo pipefail
+
+# shellcheck disable=SC1090
 . ~/.config/profilerate/profilerate.sh
