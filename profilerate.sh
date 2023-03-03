@@ -1,4 +1,6 @@
-#!/usr/bin/env sh
+#!/usr/bin/env false
+
+# This should only be sourced hence the permissions and the shebang
 
 if [ -z "${PROFILERATE_DIR:-}" ]
 then
