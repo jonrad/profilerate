@@ -20,61 +20,59 @@ https://github.com/jonrad/profilerate
 ===============================================================================
 EOF
 
-SRC_DIR="$(mktemp -d)"
+install () {
+  local SRC_DIR="$(mktemp -d)"
 
-echo "Downloading and extracting to $SRC_DIR"
-mkdir -p "$SRC_DIR"
+  echo "Downloading and extracting to $SRC_DIR"
+  mkdir -p "$SRC_DIR"
 
-if [ -n "${1:-}" ]
-then
-  echo "Installing from $1"
-  "$1/build.sh" && tar -xz -C "$SRC_DIR" -f - < "$1/profilerate.latest.tar.gz" 
-else
-  curl -L "https://github.com/jonrad/profilerate/releases/download/main/profilerate.latest.tar.gz" | tar -xz -C "$SRC_DIR" -f -
-fi
-
-if [ -n "$HOME" ]
-then
-  _HOME=$HOME
-else
-  _HOME=$(echo -n ~)
-fi
-
-mkdir -p -m 700 "$_HOME/.config"
-mkdir -p -m 700 "$_HOME/.config/profilerate"
-DEST_DIR="$_HOME/.config/profilerate"
-
-echo "Installing to $DEST_DIR"
-mkdir -p "$DEST_DIR"
-
-# Don't override the personal file if it exists
-if [ -f "$DEST_DIR/personal.sh" ]
-then
-  rm "$SRC_DIR/personal.sh"
-fi
-
-cp -R "$SRC_DIR/" "$DEST_DIR/"
-
-# clean up
-rm -rf "$SRC_DIR"
-
-INSTALL_PATHS=( ~/.zshrc ~/.bashrc )
-for INSTALL_PATH in "${INSTALL_PATHS[@]}"
-do
-  if [ ! -f "$INSTALL_PATH" ]
+  if [ -n "${1:-}" ]
   then
-    touch "$INSTALL_PATH"
-  fi
-
-  if ! grep -q ". ~/.config/profilerate/profilerate.sh" "$INSTALL_PATH"
-  then
-    echo ". ~/.config/profilerate/profilerate.sh" >> "$INSTALL_PATH"
-    echo "Installed to $INSTALL_PATH"
+    echo "Installing from $1"
+    "$1/build.sh" && tar -xz -C "$SRC_DIR" -f - < "$1/profilerate.latest.tar.gz" 
   else
-    echo "Already installed in $INSTALL_PATH"
+    curl -L "https://github.com/jonrad/profilerate/releases/download/main/profilerate.latest.tar.gz" | tar -xz -C "$SRC_DIR" -f -
   fi
-done
 
+  local HOME=${HOME:-$(echo -n ~)}
+
+  mkdir -p -m 700 "$HOME/.config"
+  mkdir -p -m 700 "$HOME/.config/profilerate"
+  local DEST_DIR="$HOME/.config/profilerate"
+
+  echo "Installing to $DEST_DIR"
+  mkdir -p "$DEST_DIR"
+
+  # Don't override the personal file if it exists
+  if [ -f "$DEST_DIR/personal.sh" ]
+  then
+    rm "$SRC_DIR/personal.sh"
+  fi
+
+  cp -R "$SRC_DIR/" "$DEST_DIR/"
+
+  # clean up
+  rm -rf "$SRC_DIR"
+
+  local INSTALL_PATHS=( ~/.zshrc ~/.bashrc )
+  for INSTALL_PATH in "${INSTALL_PATHS[@]}"
+  do
+    if [ ! -f "$INSTALL_PATH" ]
+    then
+      touch "$INSTALL_PATH"
+    fi
+
+    if ! grep -q ". ~/.config/profilerate/profilerate.sh" "$INSTALL_PATH"
+    then
+      echo ". ~/.config/profilerate/profilerate.sh" >> "$INSTALL_PATH"
+      echo "Installed to $INSTALL_PATH"
+    else
+      echo "Already installed in $INSTALL_PATH"
+    fi
+  done
+}
+
+install "$@"
 echo
 echo "All done!"
 echo "To get the most use of profilerate, modify ~/.config/profilerate/personal.sh with your personal settings"
