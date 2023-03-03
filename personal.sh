@@ -20,7 +20,7 @@ elif [ "$PROFILERATE_SHELL" = "bash" ]; then
   # Put your bash specific configuration here
   echo "Profilerate: Logged into bash"
 else
-  # This is usually something like almquist shell
-  # Put your most standard configuration here
+  # This is usually something like dash/almquist shell
+  # Put your most portable configuration here
   echo "Profilerate: Logged into sh"
 fi
