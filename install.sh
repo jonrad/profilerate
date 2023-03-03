@@ -21,7 +21,6 @@ https://github.com/jonrad/profilerate
 EOF
 
 SRC_DIR="$(mktemp -d)"
-FILE="https://github.com/jonrad/profilerate/releases/download/main/profilerate.latest.tar.gz"
 
 echo "Downloading and extracting to $SRC_DIR"
 mkdir -p "$SRC_DIR"
@@ -29,7 +28,7 @@ mkdir -p "$SRC_DIR"
 if [ -n "${1:-}" ]
 then
   echo "Installing from $1"
-  "$1/build.sh" && cat "$1/profilerate.latest.tar.gz" | tar -xz -C "$SRC_DIR" -f -
+  "$1/build.sh" && tar -xz -C "$SRC_DIR" -f - < "$1/profilerate.latest.tar.gz" 
 else
   curl -L "https://github.com/jonrad/profilerate/releases/download/main/profilerate.latest.tar.gz" | tar -xz -C "$SRC_DIR" -f -
 fi
