@@ -58,7 +58,7 @@ cp -R "$SRC_DIR/" "$DEST_DIR/"
 # clean up
 rm -rf "$SRC_DIR"
 
-INSTALL_PATHS=( ~/.zshrc ~/.bash_profile )
+INSTALL_PATHS=( ~/.zshrc ~/.bashrc )
 for INSTALL_PATH in "${INSTALL_PATHS[@]}"
 do
   if [ ! -f "$INSTALL_PATH" ]
