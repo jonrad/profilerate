@@ -31,6 +31,7 @@ install () {
 
   local DEST_DIR="$HOME/.config/profilerate"
 
+  # I'm using -p to avoid doing a path check first
   # shellcheck disable=SC2174
   mkdir -p -m 700 "$HOME/.config"
   # shellcheck disable=SC2174
