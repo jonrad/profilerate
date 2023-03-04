@@ -299,6 +299,7 @@ However, you do not need to push the docker images to a remote repository when i
 * Handle fallback when all else fails
 * Refactor and speed up tests
 * Follow symlinks (especially for things like vimrc)
+* add rsync/tar/manual tests for all
 
 ## Caveats
 * Doesn't work with readonly file systems (yet)
