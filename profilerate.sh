@@ -10,11 +10,12 @@ fi
 
 if [ -z "$PROFILERATE_SHELL" ]
 then
-  if [ -n "$SHELL" ]
+  # This occurs when we use ". profilerate.sh". Identifying the shell can be complicated. So let's try the basic and then give up
+  PROFILERATE_SHELL=$(basename $(ps -p $$ -o command= 2>/dev/null || echo ''))
+  if [ -z "$PROFILERATE_SHELL" ]
   then
-    PROFILERATE_SHELL=$(basename "$SHELL")
-  else
-    PROFILERATE_SHELL="sh"
+    echo "profilerate failed to figure out the shell. Try setting it explicitly with: PROFILERATE_SHELL=shell source profilerate.sh" >&2
+    return
   fi
 fi
 
