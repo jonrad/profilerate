@@ -15,8 +15,7 @@ profilerate_shell() {
   elif [ -x "$(command -v bash)" ]; then
     PROFILERATE_SHELL="bash" bash --init-file "$PROFILERATE_DIR/shells/bash.sh"
   else
-    export ENV="$PROFILERATE_DIR/shells/sh.sh"
-    PROFILERATE_SHELL="sh" sh
+    ENV="$PROFILERATE_DIR/shells/sh.sh" PROFILERATE_SHELL="sh" sh
   fi
 }
 
