@@ -34,7 +34,6 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 * Copy your startup scripts (dotfiles) with you when you log into remote systems
 * Does not impact any of the remote rc files (does not impact other people on the system, even if they share the same user)
 * Supports `ssh`, `kubectl exec`, `docker run` and `docker exec`
-* Uses fastest file transfer, with fallbacks: `rsync`, followed by `tar`, and finally falling back to manual single file transfer (no requirements for anything to be installed on remote system)
 * Uses most modern shell with fallbacks: `zsh`, then `bash`, then `sh`
 * Transfers files to `HOME` directory first and falls back to `tmp` directory if `HOME` doesn't exist or is readonly
 * Supports both neovim and vim (with limited support for vi. See Section on vim, below)

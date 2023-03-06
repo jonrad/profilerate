@@ -56,11 +56,6 @@ _profilerate_copy () {
   DEST=$1
   shift
 
-  # First let's try rsync, it's the most efficient
-  if [ -x "$(command -v rsync)" ]; then
-    rsync -e "$@" --rsync-path="$DEST/" -r "$PROFILERATE_DIR/." rsync:. >/dev/null 2>&1 && return
-  fi
-
   # Try to use tar
   # TODO: how portable is --exclude? We need it to avoid changing perms on the directory we created
   if [ -x "$(command -v tar)" ]; then
