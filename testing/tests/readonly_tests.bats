@@ -8,7 +8,7 @@ teardown () {
   common_teardown
 }
 
-docker_run () {
+run_test () {
   PROMPT=${PROMPT:-"READY:"}
   PREP=${PREP:-"echo"}
   CONTAINER=$(docker run --rm --detach $IMAGE sh -c "$PREP; sleep infinity")
@@ -29,7 +29,7 @@ EOF
 @test "no home dir" {
   export IMAGE="jonrad/profilerate-sh:latest" 
   export PREP="adduser -D -H readonly"
-  docker_run 
+  run_test 
 
   assert_output --partial "env-good"
   assert_output --partial "alias-good"
@@ -39,7 +39,7 @@ EOF
 @test "tmp dir readonly" {
   export IMAGE="jonrad/profilerate-bash-readonly:v1"
   export PROMPT="DEFAULTPROMPT:"
-  docker_run 
+  run_test 
 
   assert_output --partial "Failed to profilerate"
   assert_output --partial "DEFAULTPROMPT:"
