@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
 RUN apt-get install -y \
     apt-transport-https \
-    ca-certificates \
+    ca-certificates\
     curl \
     gnupg-agent \
     software-properties-common \
@@ -15,7 +15,8 @@ RUN apt-get install -y \
     psmisc \
     expect `#used to test interactive shell` \
     git `#needed to pull bats` \
-    rsync `#for syncing files`
+    rsync `#for syncing files` \
+    zsh
 
 WORKDIR /root
 

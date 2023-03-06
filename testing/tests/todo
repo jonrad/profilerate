@@ -1,0 +1,6 @@
+shells: zsh, bash, dash, ash
+commands: docker exec, kubectl, ssh
+external apps: rsync, tar, none
+
+
+paths: shouldn't matter (but check to make sure they're read only)

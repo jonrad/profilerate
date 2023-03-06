@@ -10,13 +10,13 @@ fi
 
 if [ -z "$PROFILERATE_SHELL" ]
 then
+  first_word () {
+    echo $1
+  }
+
   # This occurs when we use ". profilerate.sh". Identifying the shell can be complicated. So let's try the basic and then give up
-  PROFILERATE_SHELL=$(basename $(ps -p $$ -o command= 2>/dev/null || echo ''))
-  if [ -z "$PROFILERATE_SHELL" ]
-  then
-    echo "profilerate failed to figure out the shell. Try setting it explicitly with: PROFILERATE_SHELL=shell source profilerate.sh" >&2
-    return
-  fi
+  PROFILERATE_SHELL=$(basename $(first_word $(ps -p $$ -o command= 2>/dev/null || echo '')))
+  PROFILERATE_SHELL=${PROFILERATE_SHELL:-"sh"}
 fi
 
 # TODO deal with no mktemp
