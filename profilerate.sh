@@ -60,7 +60,7 @@ _profilerate_copy () {
   # TODO: how portable is --exclude? We need it to avoid changing perms on the directory we created
   if [ -x "$(command -v tar)" ]; then
     # someone explain to me why ssh skips the first command when calling sh -c or if i'm losing it
-    tar -c -f - -C "$PROFILERATE_DIR/" . 2>/dev/null | "$@" sh -c ":; cd $DEST && tar --exclude ./ -o -x -f -" >/dev/null 2>&1 && return
+    tar -c -f - -C "$PROFILERATE_DIR/" -L . 2>/dev/null | "$@" sh -c ":; cd $DEST && tar --exclude ./ -o -x -f -" >/dev/null 2>&1 && return
   fi
 
   # If all else fails, transfer the files one at a time
