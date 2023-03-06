@@ -10,15 +10,18 @@ fi
 
 if [ -z "$PROFILERATE_SHELL" ]
 then
-  if [ -n "$SHELL" ]
-  then
-    PROFILERATE_SHELL=$(basename "$SHELL")
-  else
-    PROFILERATE_SHELL="sh"
-  fi
+  first_word () {
+    echo $1
+  }
+
+  # This occurs when we use ". profilerate.sh". Identifying the shell can be complicated. So let's try the basic and then give up
+  PROFILERATE_SHELL=$(basename $(first_word $(ps -p $$ -o command= 2>/dev/null || echo '')))
+  PROFILERATE_SHELL=${PROFILERATE_SHELL:-"sh"}
 fi
 
 # TODO deal with no mktemp
+# This is intentionally not expanding expressions, keep single quoted
+# shellcheck disable=SC2016
 _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
   if [ ! -d ~/.config ]
   then
@@ -50,18 +53,19 @@ _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
 }; _profilerate_create_dir'
 
 _profilerate_copy () {
-  RSH=$1
-  DEST=$2
+  DEST=$1
+  shift
 
   # First let's try rsync, it's the most efficient
   if [ -x "$(command -v rsync)" ]; then
-    rsync -e "$RSH" --rsync-path="$DEST/" -r "$PROFILERATE_DIR/." rsync:. >/dev/null 2>&1 && return
+    rsync -e "$@" --rsync-path="$DEST/" -r "$PROFILERATE_DIR/." rsync:. >/dev/null 2>&1 && return
   fi
 
   # Try to use tar
   # TODO: how portable is --exclude? We need it to avoid changing perms on the directory we created
   if [ -x "$(command -v tar)" ]; then
-    tar -c -f - -C "$PROFILERATE_DIR/" . | eval "$RSH sh -c 'cd $DEST && tar --exclude ./ -o -x -f -'" >/dev/null >&2 && return
+    # someone explain to me why ssh skips the first command when calling sh -c or if i'm losing it
+    tar -c -f - -C "$PROFILERATE_DIR/" . 2>/dev/null | "$@" sh -c ":; cd $DEST && tar --exclude ./ -o -x -f -" >/dev/null 2>&1 && return
   fi
 
   # If all else fails, transfer the files one at a time
@@ -69,45 +73,56 @@ _profilerate_copy () {
   # note we're optimizing for connection count
   # i wonder if we can do this as one command... (echo "Abc" > foo; echo "foo" > bar;)
   # certainly with something like base64 or od, but is that more efficient? And is it more portable?
-  cd $PROFILERATE_DIR
+  cd "$PROFILERATE_DIR" || return 1
   FILES=$(find .)
-  LAST_IFS=$IFS
+
+  # this is usually fast enough that we don't need to warn the user
+  # except when there's a lot of files
+  if [ "$(echo "$FILES" | wc -l)" -gt 20 ]
+  then
+    echo "profilerate failed to use rsync or tar to copy files. Using manual transfer, which may take some time since you have many files to transfer"
+  fi
 
   MKDIR=""
-  echo "$FILES" | while IFS= read -r FILENAME
+  while IFS= read -r FILENAME
   do
     if [ -d "$FILENAME" ]
     then
       if [ "$FILENAME" != "." ]
       then
-        MKDIR="${MKDIR}mkdir -m $(stat -f %Mp%Lp $FILENAME) -p $FILENAME;"
+        MKDIR="${MKDIR}mkdir -m $(stat -f %Mp%Lp "$FILENAME") -p \"$FILENAME\";"
       fi
     fi
-  done
-  eval "$RSH sh -c 'cd $DEST;$MKDIR'"
+  done<<EOF
+$FILES
+EOF
+
+  "$@" sh -c ":;cd $DEST;$MKDIR"
 
   CHMOD=""
-  echo "$FILES" | while IFS= read -r FILENAME
+  while IFS= read -r FILENAME
   do
     if [ -f "$FILENAME" ]
     then
-      CHMOD="${CHMOD}chmod $(stat -f %Mp%Lp $FILENAME) $FILENAME;"
-      cat $FILENAME | eval "$RSH sh -c 'cat > $DEST/$FILENAME'"
+      CHMOD="${CHMOD}chmod $(stat -f %Mp%Lp "$FILENAME") \"$FILENAME\";"
+      "$@" sh -c ":;cat > $DEST/$FILENAME" < "$FILENAME"
     fi
-  done
-  eval "$RSH sh -c 'cd $DEST;$CHMOD'"
+  done<<EOF
+$FILES
+EOF
 
-  cd - >/dev/null
+  "$@" sh -c ":;cd $DEST;$CHMOD"
+
+  cd - >/dev/null || true
 }
 
 ### Docker
 if [ -x "$(command -v docker)" ]; then
   # replicates our configuration to a container before running an interactive bash
   profilerate_docker_cp () {
-    RSH="docker exec -i $@"
     DEST=$(docker exec "$@" sh -c "$_PROFILERATE_CREATE_DIR") && \
-      _profilerate_copy "$RSH" "$DEST" >&2 && \
-      echo $DEST && \
+      _profilerate_copy "$DEST" docker exec -i "$@" >&2 && \
+      echo "$DEST" && \
       return
 
     return 1
@@ -163,11 +178,12 @@ if [ -x "$(command -v kubectl)" ]; then
 
     if [ -n "$DEST" ]
     then
-      RSH="kubectl exec -i $@ --"
-      _profilerate_copy "$RSH" "$DEST" >&2 && \
+      _profilerate_copy "$DEST" kubectl exec -i "$@" -- >&2 && \
         kubectl exec -it "$@" -- "$DEST/shell.sh"
     else
       echo Failed to profilerate, starting standard shell >&2
+      # purposely using the remote systems $SHELL var
+      # shellcheck disable=SC2016
       kubectl exec -it "$@" -- sh -c '$(command -v "$SHELL" || command -v zsh || command -v bash || command -v sh) -l'
     fi
   }
@@ -183,14 +199,14 @@ if [ -x "$(command -v ssh)" ]; then
       ssh >&2
       return
     fi
-    RSH="ssh $@"
 
-    # TODO fix for args with spaces
+    # we want this to run on the client side
+    # shellcheck disable=SC2029
     DEST=$(ssh "$@" "$_PROFILERATE_CREATE_DIR")
 
     if [ -n "$DEST" ]
     then
-      _profilerate_copy "$RSH" "$DEST" >&2 && \
+      _profilerate_copy "$DEST" ssh "$@" >&2 && \
       ssh -t "$@" "$DEST/shell.sh"
     else
       echo Failed to profilerate, starting standard shell >&2

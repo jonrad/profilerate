@@ -15,3 +15,7 @@ common_teardown() {
   unset PROFILERATE_DIR_PREVIOUS
 }
 
+docker_run () {
+  name=$(mktemp -uqd "profilerate-test.XXXXXX")
+  docker run --rm --name=${name} "$@"
+}
