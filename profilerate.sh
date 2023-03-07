@@ -222,12 +222,48 @@ if [ -x "$(command -v ssh)" ]; then
 fi
 
 ### VIM SETUP (works with neovim as well)
-if [ -f "$PROFILERATE_DIR/vimrc" ]; then
-  export VIMINIT="source $PROFILERATE_DIR/vimrc"
+# vim uses vimrc, but so does nvim
+# nvim uses init.vim or init.lua, but vim does not
+
+NVIM_FILE=""
+VIM_FILE=""
+if [ -f "$PROFILERATE_DIR/init.lua" ]
+then
+  NVIM_FILE="init.lua"
+elif [ -f "$PROFILERATE_DIR/init.vim" ]
+then
+  NVIM_FILE="init.vim"
+fi
+
+if [ -f "$PROFILERATE_DIR/vimrc" ]
+then
+  VIM_FILE="vimrc"
+fi
+
+if [ -n "$VIM_FILE" ] && [ -n "$NVIM_FILE" ]
+then
+  VIMINIT="
+let is_nvim = has('nvim')
+if is_nvim
+  source ${PROFILERATE_DIR}/${NVIM_FILE}
+else
+  source ${PROFILERATE_DIR}/${VIM_FILE}
+endif"
+elif [ -n "$VIM_FILE" ]
+then
+  VIMINIT="source ${PROFILERATE_DIR}/${VIM_FILE}"
+else
+  VIMINIT="
+let is_nvim = has('nvim')
+if is_nvim
+  source ${PROFILERATE_DIR}/${NVIM_FILE}
+endif"
+
 fi
 
 ### Inputrc setup
-if [ -f "$PROFILERATE_DIR/inputrc" ]; then
+if [ -f "$PROFILERATE_DIR/inputrc" ]
+then
   export INPUTRC="$PROFILERATE_DIR/inputrc"
 fi
 
