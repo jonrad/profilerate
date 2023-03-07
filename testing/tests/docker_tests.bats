@@ -96,6 +96,13 @@ EOF
       COMMAND="profilerate_docker_exec -e 'FOO=BAR SPACES' $CONTAINER" \
       run_test
 
+    echo "Running for $SHELL without tar" >&3
+    docker exec -it $CONTAINER sh -c 'rm $(which tar)'
+    SHELL_COMMAND="$SHELL_COMMAND" \
+      FIRST_PROMPT="$FIRST_PROMPT" \
+      COMMAND="profilerate_docker_exec -e 'FOO=BAR SPACES' $CONTAINER" \
+      run_test
+
     docker stop $CONTAINER || true
   done
 }

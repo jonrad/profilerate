@@ -11,11 +11,21 @@ fi
 if [ -z "$PROFILERATE_SHELL" ]
 then
   first_word () {
+    # purposely taking only the first word, don't quote
+    # shellcheck disable=SC2086
     echo $1
   }
 
   # This occurs when we use ". profilerate.sh". Identifying the shell can be complicated. So let's try the basic and then give up
-  PROFILERATE_SHELL=$(basename $(first_word $(ps -p $$ -o command= 2>/dev/null || echo '')))
+
+  PROFILERATE_SHELL="$(first_word "$(ps -p $$ -o command= 2>/dev/null || echo '')")"
+
+  # Login shell sometimes starts with a dash
+  if [ "$(echo "$PROFILERATE_SHELL" | cut -c 1)" = "-" ]
+  then
+    PROFILERATE_SHELL="$(echo "$PROFILERATE_SHELL" | cut -c 2-)"
+  fi
+  PROFILERATE_SHELL=$(basename "$PROFILERATE_SHELL")
   PROFILERATE_SHELL=${PROFILERATE_SHELL:-"sh"}
 fi
 
@@ -85,7 +95,8 @@ _profilerate_copy () {
     then
       if [ "$FILENAME" != "." ]
       then
-        MKDIR="${MKDIR}mkdir -m $(stat -f %Mp%Lp "$FILENAME") -p \"$FILENAME\";"
+        # if you know a better, more portable and efficient way to check file perms, let me know
+        MKDIR="${MKDIR}mkdir -m $(($([ -r "$FILENAME" ] && echo 4) + $([ -w "$FILENAME" ] && echo 2) + $([ -x "$FILENAME" ] && echo 1) + 0))00 -p \"$FILENAME\";"
       fi
     fi
   done<<EOF
@@ -99,7 +110,7 @@ EOF
   do
     if [ -f "$FILENAME" ]
     then
-      CHMOD="${CHMOD}chmod $(stat -f %Mp%Lp "$FILENAME") \"$FILENAME\";"
+      CHMOD="${CHMOD}chmod $(($(test -r "$FILENAME" && echo 4) + $(test -w "$FILENAME" && echo 2) + $(test -x "$FILENAME" && echo 1) + 0))00 \"$FILENAME\";"
       "$@" sh -c ":;cat > $DEST/$FILENAME" < "$FILENAME"
     fi
   done<<EOF
