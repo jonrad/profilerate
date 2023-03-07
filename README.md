@@ -205,10 +205,16 @@ alias s="profilerate_ssh"
 ```
 
 ### vimrc
-Create a `vimrc` (no dot) file in the main profilerate directory. It will automatically be loaded using the VIMINIT environment variable, which is supported by both neovim and vim. Note that vi isn't handled due to lack of standardization. For example, busybox vi doesn't have the `source` command, while installing `nvi` on ubuntu does. If you are frequently using busybox/alpine vi, I recommend setting the `EXINIT` environment variable in your `personal.sh`
+
+#### neovim and vim
+Copy (or symlink) either a `init.lua`, `init.vim` or `vimrc` file to your profilerate directory. It will follow you to the remote machines and will use the appropriate file based on whether you're using nvim or vim. This takes advantage of the `VIMINIT` environment variable.
+
+#### vi
+
+vi isn't handled due to lack of standardization. For example, busybox vi doesn't have the `source` command, while `nvi` on ubuntu does. If you are frequently using busybox/alpine vi, I recommend setting the `EXINIT` environment variable in your `personal.sh` based on the version of vi you find yourself encountering. Or, copy a standalone version of vim into your profilerate directory :smile:
 
 ### inputrc
-Create a `inputrc` (no dot) file in the main profilerate directory. It will be loaded by setting the INPUTRC environment variable.
+Create/copy/symlink a `inputrc` (no dot) file in the main profilerate directory. It will be loaded by setting the INPUTRC environment variable.
 
 ### Testing your personal.sh
 I recommend using docker to test the different shells:
