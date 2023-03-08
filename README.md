@@ -2,12 +2,14 @@
 
 Take your dotfiles with you when you log in to remote systems using ssh/kubectl/docker, without impacting other people on the system.
 
-This is done by create special commands that automatically copy the `profilerate` directory, including all your personalizations, to the systems you log into.
+This is done by create commands to replace your standard `ssh`/`docker exec`/`kubectl exec` that automatically copy the `profilerate` directory, including all your personalizations, to the systems you log into.
+The `profilerate_*` commands are automatically available to use in the remote system as well, for the use in jump hosts.
 
 Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 
 # Table of Contents
 
+- [tldr](#tldr)
 - [Features](#features)
 - [Installation/Upgrades](#installationupgrades)
 - [Commands](#commands)
@@ -30,6 +32,11 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 - [Caveats](#caveats)
 - [Standing on the Shoulders of Giants](#standing-on-the-shoulders-of-giants)
 
+## tldr
+* [Install](#installationupgrades)
+* Modify `~/.config/profilerate/personal.sh`, `~/.config/profilerate/init.[vim|lua]`, `~/.config/profilerate/vimrc`, `~/.config/profilerate/inputrc` and add any other files to your profilerate dir you want to take with you when you remote into another system
+* Use `profilerate_ssh` instead of `ssh`, use `profilerate_docker_[run|exec]` instead of `docker [run|exec]`,  and `profilerate_kubectl_exec` instead of `kubectl exec` (aliases for the long command names are recommended)
+* When you remote into another system, you'll notice your $PROFILERATE_DIR environment variable containing all the files you had on your local system. Your `personal.sh` is automatically sourced and your nvim/vim will use your init file or vimrc.
 
 ## Features
 
