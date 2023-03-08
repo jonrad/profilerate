@@ -29,7 +29,7 @@ teardown () {
 
 kubectl_test () {
   PROMPT=${PROMPT:-"READY: "}
-  kind load docker-image --name profilerate-tests "$IMAGE_NAME"
+  docker pull "$IMAGE_NAME" && kind load docker-image --name profilerate-tests "$IMAGE_NAME"
   kubectl apply -f "/code/testing/tests/assets/$YAML_FILE"
 
   # this is a bit silly, but it gets the job done
