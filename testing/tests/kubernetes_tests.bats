@@ -44,7 +44,7 @@ kubectl_test () {
   done
 
   run expect <<EOF
-spawn sh -c "cd $INSTALL_DIR; . $INSTALL_DIR/profilerate.sh; profilerate_kubectl $POD_NAME"
+spawn sh -c "cd $INSTALL_DIR; . $INSTALL_DIR/profilerate.sh; profilerate_kubectl_exec $POD_NAME"
 expect "$PROMPT"
 send "alias TEST_ALIAS\r"
 send "echo \\\$TEST_ENV\r"
@@ -57,7 +57,7 @@ EOF
   kubectl delete po $POD_NAME
 }
 
-@test "profilerate_kubectl bash" {
+@test "profilerate_kubectl_exec bash" {
   export POD_NAME="bash-root"
   export YAML_FILE="pod-bash-root.yaml"
   export IMAGE_NAME="jonrad/profilerate-bash:v1"
@@ -70,7 +70,7 @@ EOF
   assert_output --partial "PROFILERATE_DIR: /root"
 }
 
-@test "profilerate_kubectl bash no home dir" {
+@test "profilerate_kubectl_exec bash no home dir" {
   export POD_NAME="bash-no-home"
   export YAML_FILE="pod-bash-no-home.yaml"
   export IMAGE_NAME="jonrad/profilerate-bash-no-home:v1"
@@ -83,7 +83,7 @@ EOF
   assert_output --partial "PROFILERATE_DIR: /tmp"
 }
 
-@test "profilerate_kubectl bash readonly" {
+@test "profilerate_kubectl_exec bash readonly" {
   export POD_NAME="bash-readonly"
   export YAML_FILE="pod-bash-readonly.yaml"
   export IMAGE_NAME="jonrad/profilerate-bash-readonly:v1"
