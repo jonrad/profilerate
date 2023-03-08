@@ -54,7 +54,7 @@ Profilerate is installed in `~/.config/profilerate`
 | Command | Description | Example | Notes |
 | - | - | - | - |
 | profilerate_ssh | SSH into remote box and copy your dotfiles with you. Takes the same arguments as the standard `ssh` command | `profilerate_ssh [OTHER SSH ARGS] DESTINATION` | `DESTINATION` must be the last arg (does not take a command) |
-| profilerate_kubectl | Exec into kubernetes pod. Takes the same arguments as the `kubectl exec` command | `profilerate_kubectl [OTHER KUBECTL ARGS] POD ` | POD must be the last arg. |
+| profilerate_kubectl_exec | Exec into kubernetes pod. Takes the same arguments as the `kubectl exec` command | `profilerate_kubectl_exec [OTHER KUBECTL ARGS] POD ` | POD must be the last arg. |
 | profilerate_docker_exec | Exec into docker container. Takes the same arguments as the `docker exec` command | `profilerate_docker_exec [DOCKER EXEC ARGS] CONTAINER_ID` | You must start the docker container first |
 | profilerate_docker_run | Start a docker container and exec into it. Takes the same arguments as the `docker run` command | `profilerate_docker_run [DOCKER RUN ARGS] IMAGE` | Shuts down the container when you exit. If you don't want the container to shut down, start it yourself and exec in using `profilerate_docker_exec` |
 
@@ -161,14 +161,14 @@ BAR
 ### Kubernetes
 **Note:** See ssh example, above, for full walk through.
 
-`profilerate_kubectl` is used to exec into a kubernetes pod, just like `kubectl exec`
+`profilerate_kubectl_exec` is used to exec into a kubernetes pod, just like `kubectl exec`
 ```console
 jonrad@local$ kubectl get po -A
 NAMESPACE            NAME                                                      READY   STATUS    RESTARTS   AGE
 default              nginx                                                     1/1     Running   0          66s
 kube-system          coredns-565d847f94-2kc97                                  1/1     Running   0          2m24s
 
-jonrad@local$ profilerate_kubectl -n default nginx
+jonrad@local$ profilerate_kubectl_exec -n default nginx
 # Note that it brought our PS1 with us as well as our ls alias
 root@nginx$ ls
 total 96
@@ -200,7 +200,7 @@ fi
 # helpful aliases to not have to type as much
 alias dr="profilerate_docker_run"
 alias de="profilerate_docker_exec"
-alias ke="profilerate_kubectl"
+alias ke="profilerate_kubectl_exec"
 alias s="profilerate_ssh"
 ```
 
@@ -301,10 +301,11 @@ However, you do not need to push the docker images to a remote repository when i
 
 * Move this TODO list to issues
 * Handle readonly file systems by passing everything as a variable? Could this be used to be even more secure?
-* Handle fallback when all else fails
-* Refactor and speed up tests
-* Follow symlinks (especially for things like vimrc)
-* add rsync/tar/manual tests for all
+* add tar/manual tests for all
+* Handle spaces in dirs/files
+* Move files to logical directories
+* Add settings file
+* Make profilerate a single file
 
 ## Caveats
 * Doesn't work with readonly file systems (yet)

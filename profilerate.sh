@@ -18,7 +18,7 @@ then
 
   # This occurs when we use ". profilerate.sh". Identifying the shell can be complicated. So let's try the basic and then give up
 
-  PROFILERATE_SHELL="$(first_word "$(ps -p $$ -o command= 2>/dev/null || echo '')")"
+  PROFILERATE_SHELL="$(first_word $(ps -p $$ -o command= 2>/dev/null || echo ''))"
 
   # Login shell sometimes starts with a dash
   if [ "$(echo "$PROFILERATE_SHELL" | cut -c 1)" = "-" ]
@@ -70,7 +70,7 @@ _profilerate_copy () {
   # TODO: how portable is --exclude? We need it to avoid changing perms on the directory we created
   if [ -x "$(command -v tar)" ]; then
     # someone explain to me why ssh skips the first command when calling sh -c or if i'm losing it
-    tar -c -f - -C "$PROFILERATE_DIR/" -h . 2>/dev/null | "$@" sh -c ":; cd $DEST && tar --exclude ./ -o -x -f -" >/dev/null 2>&1 && return
+    tar -c -f - -C "$PROFILERATE_DIR/" --exclude '.git' --exclude '.github' --exclude '.gitignore' -h . 2>/dev/null | "$@" sh -c ":; cd $DEST && tar --exclude ./ -o -x -f -" >/dev/null 2>&1 && return
   fi
 
   # If all else fails, transfer the files one at a time
@@ -79,7 +79,7 @@ _profilerate_copy () {
   # i wonder if we can do this as one command... (echo "Abc" > foo; echo "foo" > bar;)
   # certainly with something like base64 or od, but is that more efficient? And is it more portable?
   cd "$PROFILERATE_DIR" || return 1
-  FILES=$(find .)
+  FILES=$(find . -not -path './.git/*' -not -path './.git' -not -path './.gitignore' -not -path './.github/*' -not -path './.github')
 
   # this is usually fast enough that we don't need to warn the user
   # except when there's a lot of files
@@ -173,10 +173,10 @@ fi
 ### Kubernetes
 if [ -x "$(command -v kubectl)" ]; then
   # replicates our configuration to a remote env before running an interactive shell
-  profilerate_kubectl () {
+  profilerate_kubectl_exec () {
     if [ "$#" = 0 ]
     then
-      echo 'profilerate_kubectl has the same args as "kubectl exec", except for COMMAND. See below' >&2
+      echo 'profilerate_kubectl_exec has the same args as "kubectl exec", except for COMMAND. See below' >&2
       kubectl exec --help >&2
       return
     fi
@@ -245,21 +245,28 @@ then
   VIMINIT="
 let is_nvim = has('nvim')
 if is_nvim
-  source ${PROFILERATE_DIR}/${NVIM_FILE}
+  :source ${PROFILERATE_DIR}/${NVIM_FILE}
 else
-  source ${PROFILERATE_DIR}/${VIM_FILE}
+  :source ${PROFILERATE_DIR}/${VIM_FILE}
 endif"
 elif [ -n "$VIM_FILE" ]
 then
-  VIMINIT="source ${PROFILERATE_DIR}/${VIM_FILE}"
-else
+  VIMINIT=":source ${PROFILERATE_DIR}/${VIM_FILE}"
+elif [ -n "$NVIM_FILE" ]
+then
   VIMINIT="
 let is_nvim = has('nvim')
 if is_nvim
-  source ${PROFILERATE_DIR}/${NVIM_FILE}
+  :source ${PROFILERATE_DIR}/${NVIM_FILE}
 endif"
-
 fi
+
+if [ -n "$VIMINIT" ]
+then
+  export VIMINIT
+fi
+
+
 
 ### Inputrc setup
 if [ -f "$PROFILERATE_DIR/inputrc" ]
