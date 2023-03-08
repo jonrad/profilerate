@@ -19,6 +19,8 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 - [Personalizing](#personalizing)
   - [personal.sh](#personalsh)
   - [vimrc](#vimrc)
+    - [neovim and vim](#neovim-and-vim)
+    - [vi](#vi)
   - [inputrc](#inputrc)
   - [Testing your personal.sh](#testing-your-personalsh)
 - [Security](#security)
