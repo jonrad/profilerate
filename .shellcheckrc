@@ -1,0 +1,6 @@
+# Allow opening any 'source'd file, even if not specified as input
+external-sources=false
+enable=all
+disable=SC1091
+disable=SC2312
+shell=sh
