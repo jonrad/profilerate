@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
-# Usage: ./install [DIR]
+# Usage: ./install [SRC_DIR] [DST_DIR]
 # If called without args, downloads the latest version from github and installs
-# If DIR is specified, will install from that directory
+# If SRC_DIR is specified, will install from that directory
+# IF DST_DIR is specified, will install to that directory
 
 set -euo pipefail
 
@@ -29,7 +30,7 @@ install () {
     exit 1
   fi
 
-  local DEST_DIR="$HOME/.config/profilerate"
+  local DEST_DIR="${2:-$HOME/.config/profilerate}"
 
   # I'm using -p to avoid doing a path check first
   # shellcheck disable=SC2174
