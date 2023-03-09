@@ -343,6 +343,7 @@ However, you do not need to push the docker images to a remote repository when i
 ## TODO
 
 * Move this TODO list to issues
+* **Provide a file transfer method that doesn't connect multiple times (via encoded env variable?)**
 * Handle readonly file systems by passing everything as a variable? Could this be used to be even more secure?
 * add tar/manual tests for all
 * Handle spaces in dirs/files
