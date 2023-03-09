@@ -12,6 +12,9 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 - [tldr](#tldr)
 - [Features](#features)
 - [Installation/Upgrades](#installationupgrades)
+  - [Using Curl - Quickest Setup](#using-curl---quickest-setup)
+  - [With Version Control](#with-version-control)
+  - [Manually](#manually)
 - [Commands](#commands)
   - [SSH Examples](#ssh-examples)
   - [Docker examples](#docker-examples)
@@ -40,7 +43,7 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 
 ## Features
 
-* Copy your startup scripts (dotfiles) with you when you log into remote systems
+* Copy your startup scripts and anything else in your `$PROFILERATE_DIR` directory with you when you log into remote systems
 * Does not impact any of the remote rc files (does not impact other people on the system, even if they share the same user)
 * Supports `ssh`, `kubectl exec`, `docker run` and `docker exec`
 * Uses most modern shell with fallbacks: `zsh`, then `bash`, then `sh`
@@ -52,11 +55,42 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 
 ## Installation/Upgrades
 
+### Using Curl - Quickest Setup
 ```bash
 bash <(curl https://raw.githubusercontent.com/jonrad/profilerate/main/install.sh)
 ```
 
 Profilerate is installed in `~/.config/profilerate`
+
+### With Version Control
+* Create a project from [profilerate-template](https://github.com/jonrad/profilerate-template)
+* Clone locally and change permissions:
+```bash
+git clone <REPO_URL> ~/.config/profilerate
+chmod 700 ~/.config/profilerate
+```
+* Add the following line to your shell's rc file (`.zshrc` and/or `.bashrc`)
+```bash
+. ~/.config/profilerate/profilerate.sh
+```
+
+### Manually
+* [Download the latest tarball](https://github.com/jonrad/profilerate/releases/download/main/profilerate.latest.tar.gz)
+```bash
+wget https://github.com/jonrad/profilerate/releases/download/main/profilerate.latest.tar.gz
+```
+* Extract and change permissions
+```bash
+DEST=~/.config/profilerate && \
+  echo "$DEST" && \
+  mkdir -p "$DEST" && \
+  tar xfvz profilerate.latest.tar.gz -C "$DEST" && \
+  chmod 700 "$DEST"
+```
+* Add the following line to your shell's rc file (`.zshrc` and/or `.bashrc`)
+```bash
+. ~/.config/profilerate/profilerate.sh
+```
 
 ## Commands
 
