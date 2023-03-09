@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 profilerate_cleanup() {
-  if [ -n "$PROFILERATE_DIR" ]
+  if [ -n "${PROFILERATE_DIR}" ]
   then
-    rm -rf "$PROFILERATE_DIR"
+    rm -rf "${PROFILERATE_DIR}"
   fi
 }
 
@@ -20,4 +20,4 @@ elif [ -f ~/.profile ]; then
   . ~/.profile
 fi
 
-. "$PROFILERATE_DIR/profilerate.sh"
+. "${PROFILERATE_DIR}/profilerate.sh"
