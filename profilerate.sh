@@ -2,9 +2,12 @@
 
 # This should only be sourced hence the permissions and the shebang
 
+# Set this var to see errors (verbose)
+_PROFILERATE_STDERR=${_PROFILERATE_STDERR:-/dev/null}
+
 if [ -z "${PROFILERATE_DIR:-}" ]
 then
-  PROFILERATE_DIR="$( cd "$( dirname "$0" )" >/dev/null 2>&1 && pwd )"
+  PROFILERATE_DIR="$( cd "$( dirname "$0" )" >"$_PROFILERATE_STDERR" 2>&1 && pwd )"
   export PROFILERATE_DIR
 fi
 
@@ -18,7 +21,7 @@ then
 
   # This occurs when we use ". profilerate.sh". Identifying the shell can be complicated. So let's try the basic and then give up
 
-  PROFILERATE_SHELL="$(first_word $(ps -p $$ -o command= 2>/dev/null || echo ''))"
+  PROFILERATE_SHELL="$(first_word $(ps -p $$ -o command= 2>"$_PROFILERATE_STDERR" || echo ''))"
 
   # Login shell sometimes starts with a dash
   if [ "$(echo "$PROFILERATE_SHELL" | cut -c 1)" = "-" ]
@@ -35,10 +38,10 @@ fi
 _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
   if [ ! -d ~/.config ]
   then
-    mkdir -m 700 -p ~/.config >/dev/null 2>&1 || true
+    mkdir -m 700 -p ~/.config >&2 || true
   fi
 
-  DEST=$(mkdir -m 700 -p ~/.config/profilerated >/dev/null 2>&1 && echo -n ~/.config/profilerated || echo "")
+  DEST=$(mkdir -m 700 -p ~/.config/profilerated >&2 && echo -n ~/.config/profilerated || echo "")
   if [ -n "$DEST" ]
   then
     RESULT=$(mktemp -qd "$DEST/profilerate.XXXXXX")
@@ -70,7 +73,7 @@ _profilerate_copy () {
   # TODO: how portable is --exclude? We need it to avoid changing perms on the directory we created
   if [ -x "$(command -v tar)" ]; then
     # someone explain to me why ssh skips the first command when calling sh -c or if i'm losing it
-    tar -c -f - -C "$PROFILERATE_DIR/" --exclude '.git' --exclude '.github' --exclude '.gitignore' -h . 2>/dev/null | "$@" sh -c ":; cd $DEST && tar --exclude ./ -o -x -f -" >/dev/null 2>&1 && return
+    tar -c -f - -C "$PROFILERATE_DIR/" --exclude '.git' --exclude '.github' --exclude '.gitignore' -h . 2>"$_PROFILERATE_STDERR" | "$@" sh -c ":; cd $DEST && tar --exclude ./ -o -x -f -" >"$_PROFILERATE_STDERR" 2>&1 && return
   fi
 
   # If all else fails, transfer the files one at a time
@@ -85,7 +88,7 @@ _profilerate_copy () {
   # except when there's a lot of files
   if [ "$(echo "$FILES" | wc -l)" -gt 20 ]
   then
-    echo "profilerate failed to use rsync or tar to copy files. Using manual transfer, which may take some time since you have many files to transfer"
+    echo "profilerate failed to use tar to copy files. Using manual transfer, which may take some time since you have many files to transfer"
   fi
 
   MKDIR=""
@@ -126,8 +129,8 @@ EOF
 if [ -x "$(command -v docker)" ]; then
   # replicates our configuration to a container before running an interactive bash
   profilerate_docker_cp () {
-    DEST=$(docker exec "$@" sh -c "$_PROFILERATE_CREATE_DIR") && \
-      _profilerate_copy "$DEST" docker exec -i "$@" >&2 && \
+    DEST=$(docker exec "$@" sh -c "$_PROFILERATE_CREATE_DIR" 2>"$_PROFILERATE_STDERR") && \
+      _profilerate_copy "$DEST" docker exec -i "$@" >"$_PROFILERATE_STDERR" 2>&1 && \
       echo "$DEST" && \
       return
 
@@ -180,11 +183,11 @@ if [ -x "$(command -v kubectl)" ]; then
       kubectl exec --help >&2
       return
     fi
-    DEST=$(kubectl exec -i "$@" -- sh -c "$_PROFILERATE_CREATE_DIR")
+    DEST=$(kubectl exec -i "$@" -- sh -c "$_PROFILERATE_CREATE_DIR" 2>"$_PROFILERATE_STDERR")
 
     if [ -n "$DEST" ]
     then
-      _profilerate_copy "$DEST" kubectl exec -i "$@" -- >&2 && \
+      _profilerate_copy "$DEST" kubectl exec -i "$@" -- >"$_PROFILERATE_STDERR" 2>&1 && \
         kubectl exec -it "$@" -- "$DEST/shell.sh"
     else
       echo Failed to profilerate, starting standard shell >&2
@@ -208,12 +211,12 @@ if [ -x "$(command -v ssh)" ]; then
 
     # we want this to run on the client side
     # shellcheck disable=SC2029
-    DEST=$(ssh "$@" "$_PROFILERATE_CREATE_DIR")
+    DEST=$(ssh "$@" "$_PROFILERATE_CREATE_DIR" 2>"$_PROFILERATE_STDERR")
 
     if [ -n "$DEST" ]
     then
-      _profilerate_copy "$DEST" ssh "$@" >&2 && \
-      ssh -t "$@" "$DEST/shell.sh"
+      _profilerate_copy "$DEST" ssh "$@" >"$_PROFILERATE_STDERR" 2>&1 && \
+        ssh -t "$@" "exec $DEST/shell.sh"
     else
       echo Failed to profilerate, starting standard shell >&2
       ssh -t "$@" '$(command -v "$SHELL" || command -v zsh || command -v bash || command -v sh) -l'
