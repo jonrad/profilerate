@@ -33,13 +33,22 @@ fi
     "builtin" "unset" "_zshi_rcs" "_zshi_zdotdir"
     "builtin" "command" "rm" "-rf" "--" '${(q)tmp}'
     "builtin" "source" '${(q)init}'
+    profilerate_cleanup() {
+      if [ -n "$PROFILERATE_DIR" ]
+      then
+        rm -rf "$PROFILERATE_DIR"
+      fi
+    }
+
+    trap profilerate_cleanup EXIT
+
   else
     _zshi_zdotdir=${ZDOTDIR:-~}
     ZDOTDIR='${(q)tmp}'
   fi
 }' || return
     done
-    _zshi_zdotdir=${ZDOTDIR:-~} ZDOTDIR=$tmp zsh "$@"
+    _zshi_zdotdir=${ZDOTDIR:-~} ZDOTDIR=$tmp exec zsh "$@"
   } always {
     [[ -e $tmp ]] && rm -rf -- $tmp
   }
