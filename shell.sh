@@ -11,16 +11,12 @@ profilerate_shell() {
   fi
 
   if [ -x "$(command -v zsh)" ]; then
-    PROFILERATE_SHELL="zsh" "$PROFILERATE_DIR/shells/zsh.sh" "$PROFILERATE_DIR/profilerate.sh" -l
+    PROFILERATE_SHELL="zsh" exec "$PROFILERATE_DIR/shells/zsh.sh" "$PROFILERATE_DIR/profilerate.sh" -l
   elif [ -x "$(command -v bash)" ]; then
-    PROFILERATE_SHELL="bash" bash --init-file "$PROFILERATE_DIR/shells/bash.sh"
+    PROFILERATE_SHELL="bash" exec bash --init-file "$PROFILERATE_DIR/shells/bash.sh"
   else
-    ENV="$PROFILERATE_DIR/shells/sh.sh" PROFILERATE_SHELL="sh" sh
+    ENV="$PROFILERATE_DIR/shells/sh.sh" PROFILERATE_SHELL="sh" exec sh
   fi
 }
 
 profilerate_shell
-if [ -n "$PROFILERATE_DIR" ]
-then
-  rm -rf "$PROFILERATE_DIR"
-fi
