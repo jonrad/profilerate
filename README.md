@@ -359,7 +359,8 @@ export _PROFILERATE_STDERR=/dev/stderr # Print out errors from calls made by pro
 set -x # https://linuxhint.com/set-x-command-bash/
 ```
 
-## Standing on the Shoulders of Giants
+## Thank yous, prior art, and cool stuff:
 * [zshi](https://github.com/romkatv/zshi) - Script to add init command to zsh
 * [bats-core](https://github.com/bats-core/bats-core) - bats-core, used for testing
-* [kyrat](https://github.com/fsquillace/kyrat) - A simple ssh wrapper script that brings your dotfiles always with you on Linux and OSX
+* [kyrat](https://github.com/fsquillace/kyrat) - SSH wrapper script that brings your dotfiles always with you on Linux and OSX
+* [sshrc](https://github.com/cdown/sshrc) - Bring your .bashrc, .vimrc, etc. with you when you ssh
