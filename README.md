@@ -29,7 +29,7 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 - [Developing Profilerate](#developing-profilerate)
 - [Automated Tests](#automated-tests)
 - [TODO](#todo)
-- [Caveats](#caveats)
+- [Debugging](#debugging)
 - [Standing on the Shoulders of Giants](#standing-on-the-shoulders-of-giants)
 
 ## tldr
@@ -316,8 +316,13 @@ However, you do not need to push the docker images to a remote repository when i
 * Add settings file
 * Make profilerate a single file
 
-## Caveats
-* Doesn't work with readonly file systems (yet)
+## Debugging
+The following should help with debugging:
+
+```bash
+export _PROFILERATE_STDERR=/dev/stderr # Print out errors from calls made by profilerate
+set -x # https://linuxhint.com/set-x-command-bash/
+```
 
 ## Standing on the Shoulders of Giants
 * [zshi](https://github.com/romkatv/zshi) - Script to add init command to zsh
