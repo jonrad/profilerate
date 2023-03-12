@@ -110,14 +110,20 @@ _profilerate_copy_cat () {
       if [ "${FILENAME}" != "." ]
       then
         # if you know a better, more portable and efficient way to check file perms, let me know
-        MKDIR="${MKDIR}mkdir -m $(($([ -r "${FILENAME}" ] && echo 4) + $([ -w "${FILENAME}" ] && echo 2) + $([ -x "${FILENAME}" ] && echo 1) + 0))00 -p \"${FILENAME}\";"
+        MKDIR="${MKDIR}mkdir -m $(($([ -r "${FILENAME}" ] && echo 4) + $([ -w "${FILENAME}" ] && echo 2) + $([ -x "${FILENAME}" ] && echo 1) + 0))00 -p \"${FILENAME}\" && "
       fi
     fi
   done<<EOF
 ${FILES}
 EOF
 
-  DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c ":;DEST=\$(${_PROFILERATE_CREATE_DIR});cd \${DEST};${MKDIR}echo \${DEST}") || (cd - && return 1)
+  DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c ":;DEST=\$(${_PROFILERATE_CREATE_DIR}) && cd \${DEST} && ${MKDIR} echo \${DEST}" 2>"${_PROFILERATE_STDERR}")
+
+  if [ $? -ne 0 ]
+  then
+    cd - >/dev/null
+    return 1
+  fi
 
   CHMOD=""
   while read -r FILENAME
