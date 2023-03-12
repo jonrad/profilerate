@@ -2,12 +2,10 @@
 
 # This should only be sourced hence the permissions and the shebang
 
-# Set this var to see errors (verbose)
+# Set this var to /dev/stderr for debugging (verbose)
 _PROFILERATE_STDERR=${_PROFILERATE_STDERR:-/dev/null}
-#_PROFILERATE_TRANSFER_METHODS=${_PROFILERATE_TRANSFER_METHODS:-"hack
-#tar
-#cat"}
-_PROFILERATE_TRANSFER_METHODS=${_PROFILERATE_TRANSFER_METHODS:-"hack tar"}
+# Copy methodologies. Can change this to change the order or only use a subset (eg set to just tar) if you don't want to try the single file at a time method
+_PROFILERATE_TRANSFER_METHODS=${_PROFILERATE_TRANSFER_METHODS:-"tar cat"}
 
 if [ -z "${PROFILERATE_DIR:-}" ]
 then
@@ -18,15 +16,7 @@ fi
 # This occurs when we use ". profilerate.sh". Identifying the shell can be complicated. So let's try the basic and then give up
 if [ -z "${PROFILERATE_SHELL}" ]
 then
-  first_word () {
-    # purposely taking only the first word, don't quote
-    # shellcheck disable=SC2086
-    echo $1
-  }
-
-  # Purposely not quoting here to get the first word
-  # shellcheck disable=SC2046
-  PROFILERATE_SHELL="$(first_word $(ps -p $$ -o command= 2>"${_PROFILERATE_STDERR}" || echo ''))"
+  PROFILERATE_SHELL="$(ps -p $$ -c -o command= 2>"${_PROFILERATE_STDERR}" || echo '')"
 
   # Login shell sometimes starts with a dash
   if [ "$(echo "${PROFILERATE_SHELL}" | cut -c 1)" = "-" ]
@@ -70,6 +60,7 @@ _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
   return 1
 }; _profilerate_create_dir'
 
+# Copy files by trying to create a tar archive of all of them and sending over the wire
 _profilerate_copy_tar () {
   NONINTERACTIVE_COMMAND="$1"
   INTERACTIVE_COMMAND="$2"
@@ -92,23 +83,21 @@ _profilerate_copy_tar () {
   return 1
 }
 
+# If all else fails, transfer the files one at a time
+# Loop through all the files and transfer them via cat
+# note we're optimizing for connection count
 _profilerate_copy_cat () {
   NONINTERACTIVE_COMMAND="$1"
   INTERACTIVE_COMMAND="$2"
 
   shift 2
 
-  # If all else fails, transfer the files one at a time
-  # Loop through all the files and transfer them via cat
-  # note we're optimizing for connection count
-  # i wonder if we can do this as one command... (echo "Abc" > foo; echo "foo" > bar;)
-  # certainly with something like base64 or od, but is that more efficient? And is it more portable?
   cd "${PROFILERATE_DIR}" || return 1
   FILES=$(find . -not -path './.git/*' -not -path './.git' -not -path './.gitignore' -not -path './.github/*' -not -path './.github')
 
   # this is usually fast enough that we don't need to warn the user
   # except when there's a lot of files
-  if [ "$(echo "${FILES}" | wc -l 1>/dev/null 2>&1)" -gt 20 ]
+  if [ "$(echo "${FILES}" | wc -l 2>"$_PROFILERATE_STDERR")" -gt 20 ]
   then
     echo "profilerate failed to use tar to copy files. Using manual transfer, which may take some time since you have many files to transfer">&2
   fi
@@ -128,7 +117,7 @@ _profilerate_copy_cat () {
 ${FILES}
 EOF
 
-  DEST=$($NONINTERACTIVE_COMMAND "$@" sh -c ":;DEST=\$\(${_PROFILERATE_CREATE_DIR}\);cd ${DEST};${MKDIR}") || return 1
+  DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c ":;DEST=\$(${_PROFILERATE_CREATE_DIR});cd \${DEST};${MKDIR}echo \${DEST}") || (cd - && return 1)
 
   CHMOD=""
   while read -r FILENAME
@@ -153,7 +142,10 @@ _profilerate_copy () {
   INTERACTIVE_COMMAND="$2"
 
   shift 2
-  setopt shwordsplit 2>/dev/null
+
+  # zsh only, make word splitting same as bash
+  setopt LOCAL_OPTIONS shwordsplit 2>/dev/null
+
   for COPY_METHOD in $_PROFILERATE_TRANSFER_METHODS
   do
     FUNCTION="_profilerate_copy_${COPY_METHOD}"
@@ -164,17 +156,15 @@ _profilerate_copy () {
       echo "${FUNCTION} Not found">"${_PROFILERATE_STDERR}"
     fi
   done
-  unsetopt shwordsplit 2>/dev/null
 
   echo Failed to profilerate, starting standard shell >&2 && 
-      $INTERACTIVE_COMMAND "$@" sh -c '$(command -v "${SHELL:-zsh}" || command -v zsh || command -v bash || command -v sh) -l'
+    $INTERACTIVE_COMMAND "$@" sh -c '$(command -v "${SHELL:-zsh}" || command -v zsh || command -v bash || command -v sh) -l'
 
   return 1
 }
 
 ### Docker
 if [ -x "$(command -v docker)" ]; then
-  # replicates our configuration to a container before running an interactive bash
   _profilerate_docker_noninteractive_command () {
     docker exec -i "$@"
   }
@@ -214,7 +204,14 @@ fi
 
 ### Kubernetes
 if [ -x "$(command -v kubectl)" ]; then
-  # replicates our configuration to a remote env before running an interactive shell
+  _profilerate_kubectl_noninteractive_command () {
+    kubectl exec -i "$@"
+  }
+
+  _profilerate_kubectl_interactive_command () {
+    kubectl exec -it "$@"
+  }
+
   profilerate_kubectl_exec () {
     if [ "$#" = 0 ]
     then
@@ -222,24 +219,21 @@ if [ -x "$(command -v kubectl)" ]; then
       kubectl exec --help >&2
       return
     fi
-    DEST=$(kubectl exec -i "$@" -- sh -c "${_PROFILERATE_CREATE_DIR}" 2>"${_PROFILERATE_STDERR}")
 
-    if [ -n "${DEST}" ]
-    then
-      _profilerate_copy "${DEST}" kubectl exec -i "$@" -- >"${_PROFILERATE_STDERR}" 2>&1 && \
-        kubectl exec -it "$@" -- "${DEST}/shell.sh"
-    else
-      echo Failed to profilerate, starting standard shell >&2
-      # purposely using the remote systems $SHELL var
-      # shellcheck disable=SC2016
-      kubectl exec -it "$@" -- sh -c '$(command -v "${SHELL}" || command -v zsh || command -v bash || command -v sh) -l'
-    fi
+    _profilerate_copy "_profilerate_kubectl_noninteractive_command" "_profilerate_kubectl_interactive_command" "$@" "--"
   }
 fi
 
 ### SSH
 if [ -x "$(command -v ssh)" ]; then
-  # ssh [args] HOST to ssh to host and replicate our environment
+  _profilerate_ssh_noninteractive_command () {
+    ssh "$@"
+  }
+
+  _profilerate_ssh_interactive_command () {
+    ssh -t "$@"
+  }
+
   profilerate_ssh () {
     if [ "$#" = 0 ]
     then
@@ -248,18 +242,7 @@ if [ -x "$(command -v ssh)" ]; then
       return
     fi
 
-    # we want this to run on the client side
-    # shellcheck disable=SC2029
-    DEST=$(ssh "$@" "${_PROFILERATE_CREATE_DIR}" 2>"${_PROFILERATE_STDERR}")
-
-    if [ -n "${DEST}" ]
-    then
-      _profilerate_copy "${DEST}" ssh "$@" >"${_PROFILERATE_STDERR}" 2>&1 && \
-        ssh -t "$@" "exec ${DEST}/shell.sh"
-    else
-      echo Failed to profilerate, starting standard shell >&2
-      ssh -t "$@" '$(command -v "${SHELL}" || command -v zsh || command -v bash || command -v sh) -l'
-    fi
+    _profilerate_copy "_profilerate_ssh_noninteractive_command" "_profilerate_ssh_interactive_command" "$@"
   }
 fi
 
