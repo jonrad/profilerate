@@ -4,6 +4,10 @@
 
 # Set this var to see errors (verbose)
 _PROFILERATE_STDERR=${_PROFILERATE_STDERR:-/dev/null}
+#_PROFILERATE_TRANSFER_METHODS=${_PROFILERATE_TRANSFER_METHODS:-"hack
+#tar
+#cat"}
+_PROFILERATE_TRANSFER_METHODS=${_PROFILERATE_TRANSFER_METHODS:-"hack tar"}
 
 if [ -z "${PROFILERATE_DIR:-}" ]
 then
@@ -66,16 +70,33 @@ _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
   return 1
 }; _profilerate_create_dir'
 
-_profilerate_copy () {
-  DEST=$1
-  shift
+_profilerate_copy_tar () {
+  NONINTERACTIVE_COMMAND="$1"
+  INTERACTIVE_COMMAND="$2"
+
+  shift 2
+  DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c "${_PROFILERATE_CREATE_DIR}" 2>"${_PROFILERATE_STDERR}") || return 1
 
   # Try to use tar
   # TODO: how portable is --exclude? We need it to avoid changing perms on the directory we created
   if [ -x "$(command -v tar)" ]; then
     # someone explain to me why ssh skips the first command when calling sh -c or if i'm losing it
-    tar -c -f - -C "${PROFILERATE_DIR}/" --exclude '.git' --exclude '.github' --exclude '.gitignore' -h . 2>"${_PROFILERATE_STDERR}" | "$@" sh -c ":; cd ${DEST} && tar --exclude ./ -o -x -f -" >"${_PROFILERATE_STDERR}" 2>&1 && return
+    if tar -c -f - -C "${PROFILERATE_DIR}/" --exclude '.git' --exclude '.github' --exclude '.gitignore' -h . 2>"${_PROFILERATE_STDERR}" | \
+      "${NONINTERACTIVE_COMMAND}" "$@" sh -c ":; cd ${DEST} && tar --exclude ./ -o -x -f -" >"${_PROFILERATE_STDERR}" 2>&1
+    then
+      "${INTERACTIVE_COMMAND}" "$@" "${DEST}/shell.sh"
+      return
+    fi
   fi
+  
+  return 1
+}
+
+_profilerate_copy_cat () {
+  NONINTERACTIVE_COMMAND="$1"
+  INTERACTIVE_COMMAND="$2"
+
+  shift 2
 
   # If all else fails, transfer the files one at a time
   # Loop through all the files and transfer them via cat
@@ -87,13 +108,13 @@ _profilerate_copy () {
 
   # this is usually fast enough that we don't need to warn the user
   # except when there's a lot of files
-  if [ "$(echo "${FILES}" | wc -l)" -gt 20 ]
+  if [ "$(echo "${FILES}" | wc -l 1>/dev/null 2>&1)" -gt 20 ]
   then
-    echo "profilerate failed to use tar to copy files. Using manual transfer, which may take some time since you have many files to transfer"
+    echo "profilerate failed to use tar to copy files. Using manual transfer, which may take some time since you have many files to transfer">&2
   fi
 
   MKDIR=""
-  while IFS= read -r FILENAME
+  while read -r FILENAME
   do
     if [ -d "${FILENAME}" ]
     then
@@ -107,35 +128,52 @@ _profilerate_copy () {
 ${FILES}
 EOF
 
-  "$@" sh -c ":;cd ${DEST};${MKDIR}"
+  DEST=$($NONINTERACTIVE_COMMAND "$@" sh -c ":;DEST=\$\(${_PROFILERATE_CREATE_DIR}\);cd ${DEST};${MKDIR}") || return 1
 
   CHMOD=""
-  while IFS= read -r FILENAME
+  while read -r FILENAME
   do
     if [ -f "${FILENAME}" ]
     then
       CHMOD="${CHMOD}chmod $(($(test -r "${FILENAME}" && echo 4) + $(test -w "${FILENAME}" && echo 2) + $(test -x "${FILENAME}" && echo 1) + 0))00 \"${FILENAME}\";"
-      "$@" sh -c ":;cat > ${DEST}/${FILENAME}" < "${FILENAME}"
+      $NONINTERACTIVE_COMMAND "$@" sh -c ":;cat > ${DEST}/${FILENAME}" < "${FILENAME}"
     fi
   done<<EOF
 ${FILES}
 EOF
 
-  "$@" sh -c ":;cd ${DEST};${CHMOD}"
+  $NONINTERACTIVE_COMMAND "$@" sh -c ":;cd ${DEST};${CHMOD}"
 
   cd - >/dev/null || true
+  "${INTERACTIVE_COMMAND}" "$@" "${DEST}/shell.sh"
+}
+
+_profilerate_copy () {
+  setopt shwordsplit 2>/dev/null
+  for COPY_METHOD in $_PROFILERATE_TRANSFER_METHODS
+  do
+    FUNCTION="_profilerate_copy_${COPY_METHOD}"
+    if [ -n "$(command -v $FUNCTION)" ]; then
+      echo "Using ${FUNCTION} to transfer">"${_PROFILERATE_STDERR}"
+      $FUNCTION "$@" && return
+    else
+      echo "${FUNCTION} Not found">"${_PROFILERATE_STDERR}"
+    fi
+  done
+  unsetopt shwordsplit 2>/dev/null
+
+  return 1
 }
 
 ### Docker
 if [ -x "$(command -v docker)" ]; then
   # replicates our configuration to a container before running an interactive bash
-  profilerate_docker_cp () {
-    DEST=$(docker exec "$@" sh -c "${_PROFILERATE_CREATE_DIR}" 2>"${_PROFILERATE_STDERR}") && \
-      _profilerate_copy "${DEST}" docker exec -i "$@" >"${_PROFILERATE_STDERR}" 2>&1 && \
-      echo "${DEST}" && \
-      return
+  _profilerate_docker_noninteractive_command () {
+    docker exec -i "$@"
+  }
 
-    return 1
+  _profilerate_docker_interactive_command () {
+    docker exec -it "$@"
   }
 
   profilerate_docker_exec () {
@@ -146,14 +184,9 @@ if [ -x "$(command -v docker)" ]; then
       return
     fi
 
-    DEST=$(profilerate_docker_cp "$@")
-    if [ -n "${DEST}" ]
-    then
-      docker exec -it "$@" "${DEST}/shell.sh"
-    else
-      echo Failed to profilerate, starting standard shell >&2
-      docker exec -it "$@" sh -c '$(command -v "${SHELL}" || command -v zsh || command -v bash || command -v sh) -l'
-    fi
+    _profilerate_copy "_profilerate_docker_noninteractive_command" "_profilerate_docker_interactive_command" "$@" || \
+      ( echo Failed to profilerate, starting standard shell >&2 && 
+        docker exec -it "$@" sh -c '$(command -v "${SHELL}" || command -v zsh || command -v bash || command -v sh) -l' )
   }
 
   profilerate_docker_run () {
