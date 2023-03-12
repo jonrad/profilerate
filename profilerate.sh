@@ -149,18 +149,25 @@ EOF
 }
 
 _profilerate_copy () {
+  NONINTERACTIVE_COMMAND="$1"
+  INTERACTIVE_COMMAND="$2"
+
+  shift 2
   setopt shwordsplit 2>/dev/null
   for COPY_METHOD in $_PROFILERATE_TRANSFER_METHODS
   do
     FUNCTION="_profilerate_copy_${COPY_METHOD}"
     if [ -n "$(command -v $FUNCTION)" ]; then
       echo "Using ${FUNCTION} to transfer">"${_PROFILERATE_STDERR}"
-      $FUNCTION "$@" && return
+      $FUNCTION $NONINTERACTIVE_COMMAND $INTERACTIVE_COMMAND "$@" && return
     else
       echo "${FUNCTION} Not found">"${_PROFILERATE_STDERR}"
     fi
   done
   unsetopt shwordsplit 2>/dev/null
+
+  echo Failed to profilerate, starting standard shell >&2 && 
+      $INTERACTIVE_COMMAND "$@" sh -c '$(command -v "${SHELL:-zsh}" || command -v zsh || command -v bash || command -v sh) -l'
 
   return 1
 }
@@ -184,9 +191,7 @@ if [ -x "$(command -v docker)" ]; then
       return
     fi
 
-    _profilerate_copy "_profilerate_docker_noninteractive_command" "_profilerate_docker_interactive_command" "$@" || \
-      ( echo Failed to profilerate, starting standard shell >&2 && 
-        docker exec -it "$@" sh -c '$(command -v "${SHELL}" || command -v zsh || command -v bash || command -v sh) -l' )
+    _profilerate_copy "_profilerate_docker_noninteractive_command" "_profilerate_docker_interactive_command" "$@"
   }
 
   profilerate_docker_run () {
