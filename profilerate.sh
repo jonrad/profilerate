@@ -54,7 +54,7 @@ _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
 
   if [ -n "${RESULT}" ]
   then
-    chmod 700 "${RESULT}" && echo "${RESULT}" && return
+    chmod 700 "${RESULT}" && echo "${RESULT}" && return 0
   fi
 
   return 1
@@ -76,7 +76,7 @@ _profilerate_copy_tar () {
       "${NONINTERACTIVE_COMMAND}" "$@" sh -c ":; cd ${DEST} && tar --exclude ./ -o -x -f -" >"${_PROFILERATE_STDERR}" 2>&1
     then
       "${INTERACTIVE_COMMAND}" "$@" "${DEST}/shell.sh"
-      return
+      return 0
     fi
   fi
   
@@ -157,7 +157,7 @@ _profilerate_copy () {
     FUNCTION="_profilerate_copy_${COPY_METHOD}"
     if [ -n "$(command -v $FUNCTION)" ]; then
       echo "Using ${FUNCTION} to transfer">"${_PROFILERATE_STDERR}"
-      $FUNCTION $NONINTERACTIVE_COMMAND $INTERACTIVE_COMMAND "$@" && return
+      $FUNCTION $NONINTERACTIVE_COMMAND $INTERACTIVE_COMMAND "$@" && return 0
     else
       echo "${FUNCTION} Not found">"${_PROFILERATE_STDERR}"
     fi
@@ -184,7 +184,7 @@ if [ -x "$(command -v docker)" ]; then
     then
       echo 'profilerate_docker_exec has the same args as "docker exec", except for COMMAND. See below' >&2
       docker exec --help >&2
-      return
+      return 1
     fi
 
     _profilerate_copy "_profilerate_docker_noninteractive_command" "_profilerate_docker_interactive_command" "$@"
@@ -195,7 +195,7 @@ if [ -x "$(command -v docker)" ]; then
     then
       echo 'profilerate_docker_run has the same args as "docker run", except for COMMAND. See below' >&2
       docker run --help >&2
-      return
+      return 1
     fi
 
     # TODO: This may be optimized by using docker run shell + docker attach using streaming input
@@ -223,7 +223,7 @@ if [ -x "$(command -v kubectl)" ]; then
     then
       echo 'profilerate_kubectl_exec has the same args as "kubectl exec", except for COMMAND. See below' >&2
       kubectl exec --help >&2
-      return
+      return 1
     fi
 
     _profilerate_copy "_profilerate_kubectl_noninteractive_command" "_profilerate_kubectl_interactive_command" "$@" "--"
@@ -245,7 +245,7 @@ if [ -x "$(command -v ssh)" ]; then
     then
       echo 'profilerate_ssh has the same args as ssh, except for [command]. See below' >&2
       ssh >&2
-      return
+      return 1
     fi
 
     _profilerate_copy "_profilerate_ssh_noninteractive_command" "_profilerate_ssh_interactive_command" "$@"
