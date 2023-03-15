@@ -33,7 +33,7 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 - [Automated Tests](#automated-tests)
 - [TODO](#todo)
 - [Debugging](#debugging)
-- [Standing on the Shoulders of Giants](#standing-on-the-shoulders-of-giants)
+- [Thank yous, prior art, and cool stuff:](#thank-yous-prior-art-and-cool-stuff)
 
 ## tldr
 * [Install](#installationupgrades)
