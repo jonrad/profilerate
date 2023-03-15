@@ -63,19 +63,19 @@ _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
 # Copy files by trying to create a tar archive of all of them and sending over the wire
 _profilerate_copy_tar () {
   NONINTERACTIVE_COMMAND="$1"
-  INTERACTIVE_COMMAND="$2"
 
-  shift 2
-  DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c "${_PROFILERATE_CREATE_DIR}" 2>"${_PROFILERATE_STDERR}") || return 1
+  shift
 
   # Try to use tar
   # TODO: how portable is --exclude? We need it to avoid changing perms on the directory we created
   if [ -x "$(command -v tar)" ]; then
+    DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c "${_PROFILERATE_CREATE_DIR}" 2>"${_PROFILERATE_STDERR}") || return 1
+    echo "$DEST"
+
     # someone explain to me why ssh skips the first command when calling sh -c or if i'm losing it
     if tar -c -f - -C "${PROFILERATE_DIR}/" --exclude '.git' --exclude '.github' --exclude '.gitignore' -h . 2>"${_PROFILERATE_STDERR}" | \
       "${NONINTERACTIVE_COMMAND}" "$@" sh -c ":; cd ${DEST} && tar --exclude ./ -o -x -f -" >"${_PROFILERATE_STDERR}" 2>&1
     then
-      "${INTERACTIVE_COMMAND}" "$@" "${DEST}/shell.sh"
       return 0
     fi
   fi
@@ -88,9 +88,8 @@ _profilerate_copy_tar () {
 # note we're optimizing for connection count
 _profilerate_copy_cat () {
   NONINTERACTIVE_COMMAND="$1"
-  INTERACTIVE_COMMAND="$2"
 
-  shift 2
+  shift
 
   cd "${PROFILERATE_DIR}" || return 1
   FILES=$(find . -not -path './.git/*' -not -path './.git' -not -path './.gitignore' -not -path './.github/*' -not -path './.github')
@@ -125,6 +124,8 @@ EOF
     return 1
   fi
 
+  echo "$DEST"
+
   CHMOD=""
   while read -r FILENAME
   do
@@ -140,7 +141,6 @@ EOF
   $NONINTERACTIVE_COMMAND "$@" sh -c ":;cd ${DEST};${CHMOD}"
 
   cd - >/dev/null || true
-  "${INTERACTIVE_COMMAND}" "$@" "${DEST}/shell.sh"
 }
 
 _profilerate_copy () {
@@ -154,10 +154,27 @@ _profilerate_copy () {
 
   for COPY_METHOD in $_PROFILERATE_TRANSFER_METHODS
   do
+    DEST=""
     FUNCTION="_profilerate_copy_${COPY_METHOD}"
     if [ -n "$(command -v $FUNCTION)" ]; then
       echo "Using ${FUNCTION} to transfer">"${_PROFILERATE_STDERR}"
-      $FUNCTION $NONINTERACTIVE_COMMAND $INTERACTIVE_COMMAND "$@" && return 0
+      # Each profilerate_copy_x function must take:
+      # the noninteractice command as a function name
+      # the args the user passed in
+      # an optional DEST as an environment variable if the remote destination already exists and is well defined
+      # it MAY return the dest
+      NEW_DEST=$(DEST=$DEST $FUNCTION $NONINTERACTIVE_COMMAND "$@")
+
+      if [ $? = 0 ]
+      then
+        "${INTERACTIVE_COMMAND}" "$@" "${NEW_DEST}/shell.sh"
+        return 0
+      fi
+
+      if [ -n "$NEW_DEST" ]
+      then
+        DEST=$NEW_DEST
+      fi
     else
       echo "${FUNCTION} Not found">"${_PROFILERATE_STDERR}"
     fi
