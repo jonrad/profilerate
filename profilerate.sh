@@ -140,15 +140,13 @@ _profilerate_copy_manual () {
   shift 2
 
   cd "${PROFILERATE_DIR}" || return 1
-  echo find . $(_profilerate_excludes_find)>&2
-  echo find . -not -path './.git/*' -not -path './.git' -not -path './.gitignore' -not -path './.github/*' -not -path './.github'
   FILES=$(find . $(_profilerate_excludes_find))
 
   # this is usually fast enough that we don't need to warn the user
   # except when there's a lot of files
   if [ "$(echo "${FILES}" | wc -l 2>"$_PROFILERATE_STDERR")" -gt 20 ]
   then
-    echo "profilerate failed to use tar to copy files. Using manual transfer, which may take some time since you have many files to transfer">&2
+    echo "Using manual transfer, which may take some time since you have many files to transfer">&2
   fi
 
   MKDIR=""
