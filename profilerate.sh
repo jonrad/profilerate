@@ -60,22 +60,46 @@ _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
   return 1
 }; _profilerate_create_dir'
 
+_profilerate_copy_xxd () {
+  NONINTERACTIVE_COMMAND="$1"
+  INTERACTIVE_COMMAND="$2"
+
+  shift 2
+  cd "${PROFILERATE_DIR}" || return 1
+
+  COMMAND="
+export PROFILERATE_DIR=\$(${_PROFILERATE_CREATE_DIR}) || return 1
+cd \$PROFILERATE_DIR
+echo '$(tar -c -z -f - -C "${PROFILERATE_DIR}/" --exclude '.git' --exclude '.github' --exclude '.gitignore' -h . 2>"${_PROFILERATE_STDERR}" | xxd -p)' | \
+  xxd -r -p | tar --exclude ./ -o -x -z -f -
+cd - >/dev/null
+exec sh \${PROFILERATE_DIR}/shell.sh
+"
+
+  echo "$COMMAND" >/tmp/command
+  "${INTERACTIVE_COMMAND}" "$@" sh -c "$COMMAND"
+
+  cd - >/dev/null || true
+  return 0
+}
+
 # Copy files by trying to create a tar archive of all of them and sending over the wire
 _profilerate_copy_tar () {
   NONINTERACTIVE_COMMAND="$1"
+  INTERACTIVE_COMMAND="$2"
 
-  shift
+  shift 2
 
   # Try to use tar
   # TODO: how portable is --exclude? We need it to avoid changing perms on the directory we created
   if [ -x "$(command -v tar)" ]; then
     DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c "${_PROFILERATE_CREATE_DIR}" 2>"${_PROFILERATE_STDERR}") || return 1
-    echo "$DEST"
 
     # someone explain to me why ssh skips the first command when calling sh -c or if i'm losing it
     if tar -c -f - -C "${PROFILERATE_DIR}/" --exclude '.git' --exclude '.github' --exclude '.gitignore' -h . 2>"${_PROFILERATE_STDERR}" | \
       "${NONINTERACTIVE_COMMAND}" "$@" sh -c ":; cd ${DEST} && tar --exclude ./ -o -x -f -" >"${_PROFILERATE_STDERR}" 2>&1
     then
+      "${INTERACTIVE_COMMAND}" "$@" "${DEST}/shell.sh"
       return 0
     fi
   fi
@@ -88,8 +112,9 @@ _profilerate_copy_tar () {
 # note we're optimizing for connection count
 _profilerate_copy_cat () {
   NONINTERACTIVE_COMMAND="$1"
+  INTERACTIVE_COMMAND="$2"
 
-  shift
+  shift 2
 
   cd "${PROFILERATE_DIR}" || return 1
   FILES=$(find . -not -path './.git/*' -not -path './.git' -not -path './.gitignore' -not -path './.github/*' -not -path './.github')
@@ -124,8 +149,6 @@ EOF
     return 1
   fi
 
-  echo "$DEST"
-
   CHMOD=""
   while read -r FILENAME
   do
@@ -141,6 +164,9 @@ EOF
   $NONINTERACTIVE_COMMAND "$@" sh -c ":;cd ${DEST};${CHMOD}"
 
   cd - >/dev/null || true
+
+  "${INTERACTIVE_COMMAND}" "$@" "${DEST}/shell.sh"
+  return 0
 }
 
 _profilerate_copy () {
@@ -163,17 +189,9 @@ _profilerate_copy () {
       # the args the user passed in
       # an optional DEST as an environment variable if the remote destination already exists and is well defined
       # it MAY return the dest
-      NEW_DEST=$(DEST=$DEST $FUNCTION $NONINTERACTIVE_COMMAND "$@")
-
-      if [ $? = 0 ]
+      if $FUNCTION $NONINTERACTIVE_COMMAND $INTERACTIVE_COMMAND "$@"
       then
-        "${INTERACTIVE_COMMAND}" "$@" "${NEW_DEST}/shell.sh"
         return 0
-      fi
-
-      if [ -n "$NEW_DEST" ]
-      then
-        DEST=$NEW_DEST
       fi
     else
       echo "${FUNCTION} Not found">"${_PROFILERATE_STDERR}"
