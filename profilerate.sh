@@ -65,8 +65,8 @@ _profilerate_copy_xxd () {
   INTERACTIVE_COMMAND="$2"
 
   shift 2
-  cd "${PROFILERATE_DIR}" || return 1
 
+  cd "${PROFILERATE_DIR}" || return 1
   COMMAND="
 export PROFILERATE_DIR=\$(${_PROFILERATE_CREATE_DIR}) || return 1
 cd \$PROFILERATE_DIR
@@ -75,12 +75,9 @@ echo '$(tar -c -z -f - -C "${PROFILERATE_DIR}/" --exclude '.git' --exclude '.git
 cd - >/dev/null
 exec sh \${PROFILERATE_DIR}/shell.sh
 "
-
-  echo "$COMMAND" >/tmp/command
-  "${INTERACTIVE_COMMAND}" "$@" sh -c "$COMMAND"
-
   cd - >/dev/null || true
-  return 0
+
+  "${INTERACTIVE_COMMAND}" "$@" sh -c "$COMMAND"
 }
 
 # Copy files by trying to create a tar archive of all of them and sending over the wire

@@ -69,7 +69,8 @@ EOF
 }
 
 @test "profilerate_docker_exec all" {
-  SHELLS=( "dash" "bash" "zsh" )
+  SHELLS=( "zsh" "bash" "dash" )
+  COPY_METHODS=( "tar" "cat" "xxd" )
   for SHELL in "${SHELLS[@]}"
   do
     SHELL_COMMAND=$SHELL
@@ -90,18 +91,15 @@ EOF
 
     CONTAINER=$(docker_run -it --detach --init --entrypoint sh jonrad/profilerate-bash:v1 -c 'while true; do sleep 600; done')
 
-    echo "Running for $SHELL" >&3
-    SHELL_COMMAND="$SHELL_COMMAND" \
-      FIRST_PROMPT="$FIRST_PROMPT" \
-      COMMAND="profilerate_docker_exec -e 'FOO=BAR SPACES' $CONTAINER" \
-      run_test
-
-    echo "Running for $SHELL without tar" >&3
-    docker exec -it $CONTAINER sh -c 'rm $(which tar)'
-    SHELL_COMMAND="$SHELL_COMMAND" \
-      FIRST_PROMPT="$FIRST_PROMPT" \
-      COMMAND="profilerate_docker_exec -e 'FOO=BAR SPACES' $CONTAINER" \
-      run_test
+    for COPY_METHOD in "${COPY_METHODS[@]}"
+    do
+      echo "${COPY_METHOD}: Running for $SHELL" >&3
+      export _PROFILERATE_TRANSFER_METHODS=$COPY_METHOD
+      SHELL_COMMAND="$SHELL_COMMAND" \
+        FIRST_PROMPT="$FIRST_PROMPT" \
+        COMMAND="profilerate_docker_exec -e 'FOO=BAR SPACES' $CONTAINER" \
+        run_test
+    done
 
     docker stop $CONTAINER || true
   done
