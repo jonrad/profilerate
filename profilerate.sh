@@ -92,8 +92,9 @@ _profilerate_copy_hashed () {
 
   shift 2
 
-  cd "${PROFILERATE_DIR}" || return 1
-  COMMAND="
+  (
+    cd "${PROFILERATE_DIR}" || return 1
+    COMMAND="
 export PROFILERATE_DIR=\$(${_PROFILERATE_CREATE_DIR}) || return 1
 cd \$PROFILERATE_DIR
 echo '$(tar -c -z -f - -C "${PROFILERATE_DIR}/" $(_profilerate_excludes_tar) -h . 2>"${_PROFILERATE_STDERR}" | xxd -p)' | \
@@ -101,7 +102,7 @@ echo '$(tar -c -z -f - -C "${PROFILERATE_DIR}/" $(_profilerate_excludes_tar) -h 
 cd - >/dev/null
 exec sh \${PROFILERATE_DIR}/shell.sh
 "
-  cd - >/dev/null || true
+  )
 
   "${INTERACTIVE_COMMAND}" "$@" sh -c "$COMMAND"
 }
@@ -139,57 +140,62 @@ _profilerate_copy_manual () {
 
   shift 2
 
-  cd "${PROFILERATE_DIR}" || return 1
-  FILES=$(find . $(_profilerate_excludes_find))
+  DEST=$(
+    cd "${PROFILERATE_DIR}"
+    FILES=$(find . $(_profilerate_excludes_find))
 
-  # this is usually fast enough that we don't need to warn the user
-  # except when there's a lot of files
-  if [ "$(echo "${FILES}" | wc -l 2>"$_PROFILERATE_STDERR")" -gt 20 ]
-  then
-    echo "Using manual transfer, which may take some time since you have many files to transfer">&2
-  fi
-
-  MKDIR=""
-  while read -r FILENAME
-  do
-    if [ -d "${FILENAME}" ]
+    # this is usually fast enough that we don't need to warn the user
+    # except when there's a lot of files
+    if [ "$(echo "${FILES}" | wc -l 2>"$_PROFILERATE_STDERR")" -gt 20 ]
     then
-      if [ "${FILENAME}" != "." ]
+      echo "Using manual transfer, which may take some time since you have many files to transfer">&2
+    fi
+
+    MKDIR=""
+    while read -r FILENAME
+    do
+      if [ -d "${FILENAME}" ]
       then
-        # if you know a better, more portable and efficient way to check file perms, let me know
-        MKDIR="${MKDIR}mkdir -m $(($([ -r "${FILENAME}" ] && echo 4) + $([ -w "${FILENAME}" ] && echo 2) + $([ -x "${FILENAME}" ] && echo 1) + 0))00 -p \"${FILENAME}\" && "
+        if [ "${FILENAME}" != "." ]
+        then
+          # if you know a better, more portable and efficient way to check file perms, let me know
+          MKDIR="${MKDIR}mkdir -m $(($([ -r "${FILENAME}" ] && echo 4) + $([ -w "${FILENAME}" ] && echo 2) + $([ -x "${FILENAME}" ] && echo 1) + 0))00 -p \"${FILENAME}\" && "
+        fi
       fi
-    fi
-  done<<EOF
+    done<<EOF
 ${FILES}
 EOF
 
-  DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c ":;DEST=\$(${_PROFILERATE_CREATE_DIR}) && cd \${DEST} && ${MKDIR} echo \${DEST}" 2>"${_PROFILERATE_STDERR}")
+    DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c ":;DEST=\$(${_PROFILERATE_CREATE_DIR}) && cd \${DEST} && ${MKDIR} echo \${DEST}" 2>"${_PROFILERATE_STDERR}")
+    echo $DEST
 
-  if [ $? -ne 0 ]
+    if [ $? -ne 0 ]
+    then
+      return 1
+    fi
+
+    CHMOD=""
+    while read -r FILENAME
+    do
+      if [ -f "${FILENAME}" ]
+      then
+        CHMOD="${CHMOD}chmod $(($(test -r "${FILENAME}" && echo 4) + $(test -w "${FILENAME}" && echo 2) + $(test -x "${FILENAME}" && echo 1) + 0))00 \"${FILENAME}\";"
+        $NONINTERACTIVE_COMMAND "$@" sh -c ":;cat > ${DEST}/${FILENAME}" < "${FILENAME}"
+      fi
+    done<<EOF
+${FILES}
+EOF
+
+    $NONINTERACTIVE_COMMAND "$@" sh -c ":;cd ${DEST};${CHMOD}"
+  )
+
+  if [ $? = 0 ]
   then
-    cd - >/dev/null
-    return 1
+    "${INTERACTIVE_COMMAND}" "$@" "${DEST}/shell.sh"
+    return 0
   fi
 
-  CHMOD=""
-  while read -r FILENAME
-  do
-    if [ -f "${FILENAME}" ]
-    then
-      CHMOD="${CHMOD}chmod $(($(test -r "${FILENAME}" && echo 4) + $(test -w "${FILENAME}" && echo 2) + $(test -x "${FILENAME}" && echo 1) + 0))00 \"${FILENAME}\";"
-      $NONINTERACTIVE_COMMAND "$@" sh -c ":;cat > ${DEST}/${FILENAME}" < "${FILENAME}"
-    fi
-  done<<EOF
-${FILES}
-EOF
-
-  $NONINTERACTIVE_COMMAND "$@" sh -c ":;cd ${DEST};${CHMOD}"
-
-  cd - >/dev/null || true
-
-  "${INTERACTIVE_COMMAND}" "$@" "${DEST}/shell.sh"
-  return 0
+  return 1
 }
 
 _profilerate_copy () {
