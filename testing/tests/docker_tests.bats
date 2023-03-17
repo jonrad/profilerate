@@ -70,7 +70,7 @@ EOF
 
 @test "profilerate_docker_exec all" {
   SHELLS=( "zsh" "bash" "dash" )
-  COPY_METHODS=( "tar" "cat" "xxd" )
+  COPY_METHODS=( "tar" "manual" "hashed" )
   for SHELL in "${SHELLS[@]}"
   do
     SHELL_COMMAND=$SHELL

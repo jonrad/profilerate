@@ -5,7 +5,9 @@
 # Set this var to /dev/stderr for debugging (verbose)
 _PROFILERATE_STDERR=${_PROFILERATE_STDERR:-/dev/null}
 # Copy methodologies. Can change this to change the order or only use a subset (eg set to just tar) if you don't want to try the single file at a time method
-_PROFILERATE_TRANSFER_METHODS=${_PROFILERATE_TRANSFER_METHODS:-"tar cat"}
+_PROFILERATE_TRANSFER_METHODS=${_PROFILERATE_TRANSFER_METHODS:-"tar manual"}
+# Ignore files, separated by space. Directories MUST end with a /
+_PROFILERATE_IGNORE_PATHS=${_PROFILERATE_IGNORE_PATHS:-".git/ .github/ .gitignore"}
 
 if [ -z "${PROFILERATE_DIR:-}" ]
 then
@@ -60,7 +62,31 @@ _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
   return 1
 }; _profilerate_create_dir'
 
-_profilerate_copy_xxd () {
+_profilerate_excludes_tar () {
+  EXCLUDES=""
+  for IGNORE_PATH in $_PROFILERATE_IGNORE_PATHS
+  do
+    EXCLUDES="$EXCLUDES  --exclude $IGNORE_PATH"
+  done
+  echo $EXCLUDES
+}
+
+_profilerate_excludes_find () {
+  EXCLUDES=""
+  for IGNORE_PATH in $_PROFILERATE_IGNORE_PATHS
+  do
+    if [ ! "${IGNORE_PATH%/}" = "$IGNORE_PATH" ]
+    then
+      EXCLUDES="$EXCLUDES  -not -path ./$IGNORE_PATH* -not -path ./${IGNORE_PATH%/}"
+    else
+      EXCLUDES="$EXCLUDES  -not -path ./$IGNORE_PATH"
+    fi
+  done
+  echo "$EXCLUDES"
+}
+
+# hashed transfer method. See Readme
+_profilerate_copy_hashed () {
   NONINTERACTIVE_COMMAND="$1"
   INTERACTIVE_COMMAND="$2"
 
@@ -70,7 +96,7 @@ _profilerate_copy_xxd () {
   COMMAND="
 export PROFILERATE_DIR=\$(${_PROFILERATE_CREATE_DIR}) || return 1
 cd \$PROFILERATE_DIR
-echo '$(tar -c -z -f - -C "${PROFILERATE_DIR}/" --exclude '.git' --exclude '.github' --exclude '.gitignore' -h . 2>"${_PROFILERATE_STDERR}" | xxd -p)' | \
+echo '$(tar -c -z -f - -C "${PROFILERATE_DIR}/" $(_profilerate_excludes_tar) -h . 2>"${_PROFILERATE_STDERR}" | xxd -p)' | \
   xxd -r -p | tar --exclude ./ -o -x -z -f -
 cd - >/dev/null
 exec sh \${PROFILERATE_DIR}/shell.sh
@@ -93,7 +119,7 @@ _profilerate_copy_tar () {
     DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c "${_PROFILERATE_CREATE_DIR}" 2>"${_PROFILERATE_STDERR}") || return 1
 
     # someone explain to me why ssh skips the first command when calling sh -c or if i'm losing it
-    if tar -c -f - -C "${PROFILERATE_DIR}/" --exclude '.git' --exclude '.github' --exclude '.gitignore' -h . 2>"${_PROFILERATE_STDERR}" | \
+    if tar -c -f - -C "${PROFILERATE_DIR}/" $(_profilerate_excludes_tar) -h . 2>"${_PROFILERATE_STDERR}" | \
       "${NONINTERACTIVE_COMMAND}" "$@" sh -c ":; cd ${DEST} && tar --exclude ./ -o -x -f -" >"${_PROFILERATE_STDERR}" 2>&1
     then
       "${INTERACTIVE_COMMAND}" "$@" "${DEST}/shell.sh"
@@ -107,14 +133,16 @@ _profilerate_copy_tar () {
 # If all else fails, transfer the files one at a time
 # Loop through all the files and transfer them via cat
 # note we're optimizing for connection count
-_profilerate_copy_cat () {
+_profilerate_copy_manual () {
   NONINTERACTIVE_COMMAND="$1"
   INTERACTIVE_COMMAND="$2"
 
   shift 2
 
   cd "${PROFILERATE_DIR}" || return 1
-  FILES=$(find . -not -path './.git/*' -not -path './.git' -not -path './.gitignore' -not -path './.github/*' -not -path './.github')
+  echo find . $(_profilerate_excludes_find)>&2
+  echo find . -not -path './.git/*' -not -path './.git' -not -path './.gitignore' -not -path './.github/*' -not -path './.github'
+  FILES=$(find . $(_profilerate_excludes_find))
 
   # this is usually fast enough that we don't need to warn the user
   # except when there's a lot of files
@@ -328,8 +356,6 @@ if [ -n "${VIMINIT}" ]
 then
   export VIMINIT
 fi
-
-
 
 ### Inputrc setup
 if [ -f "${PROFILERATE_DIR}/inputrc" ]

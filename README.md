@@ -28,6 +28,7 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
     - [vi](#vi)
   - [inputrc](#inputrc)
   - [Testing your personal.sh](#testing-your-personalsh)
+- [Transfer Methods](#transfer-methods)
 - [Security](#security)
 - [Developing Profilerate](#developing-profilerate)
 - [Automated Tests](#automated-tests)
@@ -48,6 +49,7 @@ Pronunciation: Like proliferate, but with the `l` and the `r` exchanged.
 * Supports `ssh`, `kubectl exec`, `docker run` and `docker exec`
 * Uses most modern shell with fallbacks: `zsh`, then `bash`, then `sh`
 * Transfers files to `HOME` directory first and falls back to `tmp` directory if `HOME` doesn't exist or is readonly
+* Configurable transfer methods
 * Supports both neovim and vim (with limited support for vi. See Section on vim, below)
 * Supports inputrc
 * Is not limited to text files - Can transfer binary files if you feel they will be compatible with the remote system
@@ -266,6 +268,18 @@ profilerate_docker_run --rm jonrad/profilerate-zsh:latest #Test zsh
 profilerate_docker_run --rm jonrad/profilerate-bash:v1 #Test bash
 profilerate_docker_run --rm jonrad/profilerate-sh:latest #Test sh (ash)
 ```
+## Transfer Methods
+
+To configure the transfer methods, set the environment variable:
+```bash
+export _PROFILERATE_TRANSFER_METHODS="SPACE SEPARATED VALUES" #default: "tar manual"
+```
+
+The options are as follows:
+* `tar` - First tar the files and then send them over in one connection. Then make another connection to start you shell
+* `manual` - Send each file separately on different connections (many reconnects). Then make one last connection to start your shell. This is the fallback by default as it has the fewest requirements (`cat` must exist on both local and remote).
+* `hashed` - Send the files, hashed (base 64), and the shell connection all as one request. Still experimental (hence not one of the defaults). Tends to fail if you have too much content in your profilerate dir (TBD what that means, but somewhere between 128KB and 1MB tends to start failing in my limited testing). Has the benefit of not making extra connections (In the case of password requests for each connection). Lastly, it's probably the least secure as anyone on the **local** system could see the hashed contents via `ps`)
+
 ## Security
 Profilerate is installed with permissions only for the current user to be able to read/write/execute. The same goes for the destination directory for the files that are profilerated. That is, if you ssh into a different machine as user `jon`, then you'll see the following:
 
