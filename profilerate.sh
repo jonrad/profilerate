@@ -100,7 +100,7 @@ cd \$PROFILERATE_DIR
 echo '$(tar -c -z -f - -C "${PROFILERATE_DIR}/" $(_profilerate_excludes_tar) -h . 2>"${_PROFILERATE_STDERR}" | xxd -p)' | \
   xxd -r -p | tar --exclude ./ -o -x -z -f -
 cd - >/dev/null
-exec sh \${PROFILERATE_DIR}/shell.sh
+${PROFILERATE_PRECOMMAND}exec sh \${PROFILERATE_DIR}/shell.sh
 "
   )
 
@@ -123,7 +123,7 @@ _profilerate_copy_tar () {
     if tar -c -f - -C "${PROFILERATE_DIR}/" $(_profilerate_excludes_tar) -h . 2>"${_PROFILERATE_STDERR}" | \
       "${NONINTERACTIVE_COMMAND}" "$@" sh -c ":; cd ${DEST} && tar --exclude ./ -o -x -f -" >"${_PROFILERATE_STDERR}" 2>&1
     then
-      "${INTERACTIVE_COMMAND}" "$@" "${DEST}/shell.sh"
+      "${INTERACTIVE_COMMAND}" "$@" sh -c ":;${PROFILERATE_PRECOMMAND}exec sh '${DEST}/shell.sh'"
       return 0
     fi
   fi
@@ -191,7 +191,7 @@ EOF
 
   if [ $? = 0 ]
   then
-    "${INTERACTIVE_COMMAND}" "$@" "${DEST}/shell.sh"
+    "${INTERACTIVE_COMMAND}" "$@" sh -c "${PROFILERATE_PRECOMMAND}exec ${DEST}/shell.sh"
     return 0
   fi
 
@@ -203,6 +203,13 @@ _profilerate_copy () {
   INTERACTIVE_COMMAND="$2"
 
   shift 2
+
+  if [ -n "$PROFILERATE_PRECOMMAND" ]
+  then
+    _PROFILERATE_PRECOMMAND="$PROFILERATE_PRECOMMAND;"
+  else
+    _PROFILERATE_PRECOMMAND=""
+  fi
 
   # zsh only, make word splitting same as bash
   setopt LOCAL_OPTIONS shwordsplit 2>/dev/null
@@ -218,7 +225,7 @@ _profilerate_copy () {
       # the args the user passed in
       # an optional DEST as an environment variable if the remote destination already exists and is well defined
       # it MAY return the dest
-      if $FUNCTION $NONINTERACTIVE_COMMAND $INTERACTIVE_COMMAND "$@"
+      if PROFILERATE_PRECOMMAND=$_PROFILERATE_PRECOMMAND $FUNCTION $NONINTERACTIVE_COMMAND $INTERACTIVE_COMMAND "$@"
       then
         return 0
       fi
@@ -227,8 +234,9 @@ _profilerate_copy () {
     fi
   done
 
+  COMMAND='$(command -v "${SHELL:-zsh}" || command -v zsh || command -v bash || command -v sh) -l'
   echo Failed to profilerate, starting standard shell >&2 && 
-    $INTERACTIVE_COMMAND "$@" sh -c '$(command -v "${SHELL:-zsh}" || command -v zsh || command -v bash || command -v sh) -l'
+    $INTERACTIVE_COMMAND "$@" sh -c "${_PROFILERATE_PRECOMMAND}$COMMAND"
 
   return 1
 }
