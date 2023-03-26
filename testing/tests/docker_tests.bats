@@ -94,7 +94,7 @@ EOF
     for COPY_METHOD in "${COPY_METHODS[@]}"
     do
       echo "${COPY_METHOD}: Running for $SHELL" >&3
-      export _PROFILERATE_TRANSFER_METHODS=$COPY_METHOD
+      export PROFILERATE_TRANSFER_METHODS=$COPY_METHOD
       SHELL_COMMAND="$SHELL_COMMAND" \
         FIRST_PROMPT="$FIRST_PROMPT" \
         COMMAND="profilerate_docker_exec -e 'FOO=BAR SPACES' $CONTAINER" \

@@ -3,22 +3,22 @@
 # This should only be sourced hence the permissions and the shebang
 
 # Set this var to /dev/stderr for debugging (verbose)
-_PROFILERATE_STDERR=${_PROFILERATE_STDERR:-/dev/null}
+PROFILERATE_STDERR=${PROFILERATE_STDERR:-/dev/null}
 # Copy methodologies. Can change this to change the order or only use a subset (eg set to just tar) if you don't want to try the single file at a time method
-_PROFILERATE_TRANSFER_METHODS=${_PROFILERATE_TRANSFER_METHODS:-"tar manual"}
+PROFILERATE_TRANSFER_METHODS=${PROFILERATE_TRANSFER_METHODS:-"tar manual"}
 # Ignore files, separated by space. Directories MUST end with a /
-_PROFILERATE_IGNORE_PATHS=${_PROFILERATE_IGNORE_PATHS:-".git/ .github/ .gitignore"}
+PROFILERATE_IGNORE_PATHS=${PROFILERATE_IGNORE_PATHS:-".git/ .github/ .gitignore"}
 
 if [ -z "${PROFILERATE_DIR:-}" ]
 then
-  PROFILERATE_DIR="$( cd "$( dirname "$0" )" >"${_PROFILERATE_STDERR}" 2>&1 && pwd )"
+  PROFILERATE_DIR="$( cd "$( dirname "$0" )" >"${PROFILERATE_STDERR}" 2>&1 && pwd )"
   export PROFILERATE_DIR
 fi
 
 # This occurs when we use ". profilerate.sh". Identifying the shell can be complicated. So let's try the basic and then give up
 if [ -z "${PROFILERATE_SHELL}" ]
 then
-  PROFILERATE_SHELL="$(ps -p $$ -c -o command= 2>"${_PROFILERATE_STDERR}" || echo '')"
+  PROFILERATE_SHELL="$(ps -p $$ -c -o command= 2>"${PROFILERATE_STDERR}" || echo '')"
 
   # Login shell sometimes starts with a dash
   if [ "$(echo "${PROFILERATE_SHELL}" | cut -c 1)" = "-" ]
@@ -64,7 +64,7 @@ _PROFILERATE_CREATE_DIR='_profilerate_create_dir () {
 
 _profilerate_excludes_tar () {
   EXCLUDES=""
-  for IGNORE_PATH in $_PROFILERATE_IGNORE_PATHS
+  for IGNORE_PATH in $PROFILERATE_IGNORE_PATHS
   do
     EXCLUDES="$EXCLUDES  --exclude $IGNORE_PATH"
   done
@@ -73,7 +73,7 @@ _profilerate_excludes_tar () {
 
 _profilerate_excludes_find () {
   EXCLUDES=""
-  for IGNORE_PATH in $_PROFILERATE_IGNORE_PATHS
+  for IGNORE_PATH in $PROFILERATE_IGNORE_PATHS
   do
     if [ ! "${IGNORE_PATH%/}" = "$IGNORE_PATH" ]
     then
@@ -92,19 +92,21 @@ _profilerate_copy_hashed () {
 
   shift 2
 
-  (
+  COMMAND=$(
     cd "${PROFILERATE_DIR}" || return 1
     COMMAND="
 export PROFILERATE_DIR=\$(${_PROFILERATE_CREATE_DIR}) || return 1
 cd \$PROFILERATE_DIR
-echo '$(tar -c -z -f - -C "${PROFILERATE_DIR}/" $(_profilerate_excludes_tar) -h . 2>"${_PROFILERATE_STDERR}" | xxd -p)' | \
+echo '$(tar -c -z -f - -C "${PROFILERATE_DIR}/" $(_profilerate_excludes_tar) -h . 2>"${PROFILERATE_STDERR}" | xxd -p)' | \
   xxd -r -p | tar --exclude ./ -o -x -z -f -
 cd - >/dev/null
 ${PROFILERATE_PRECOMMAND}exec sh \${PROFILERATE_DIR}/shell.sh
 "
+    echo "$COMMAND"
   )
 
-  "${INTERACTIVE_COMMAND}" "$@" sh -c "$COMMAND"
+  "${INTERACTIVE_COMMAND}" "$@" sh -c ":;$COMMAND"
+  return $?
 }
 
 # Copy files by trying to create a tar archive of all of them and sending over the wire
@@ -117,11 +119,11 @@ _profilerate_copy_tar () {
   # Try to use tar
   # TODO: how portable is --exclude? We need it to avoid changing perms on the directory we created
   if [ -x "$(command -v tar)" ]; then
-    DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c "${_PROFILERATE_CREATE_DIR}" 2>"${_PROFILERATE_STDERR}") || return 1
+    DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c ":;${_PROFILERATE_CREATE_DIR}" 2>"${PROFILERATE_STDERR}") || return 1
 
     # someone explain to me why ssh skips the first command when calling sh -c or if i'm losing it
-    if tar -c -f - -C "${PROFILERATE_DIR}/" $(_profilerate_excludes_tar) -h . 2>"${_PROFILERATE_STDERR}" | \
-      "${NONINTERACTIVE_COMMAND}" "$@" sh -c ":; cd ${DEST} && tar --exclude ./ -o -x -f -" >"${_PROFILERATE_STDERR}" 2>&1
+    if tar -c -f - -C "${PROFILERATE_DIR}/" $(_profilerate_excludes_tar) -h . 2>"${PROFILERATE_STDERR}" | \
+      "${NONINTERACTIVE_COMMAND}" "$@" sh -c ":; cd ${DEST} && tar --exclude ./ -o -x -f -" >"${PROFILERATE_STDERR}" 2>&1
     then
       "${INTERACTIVE_COMMAND}" "$@" sh -c ":;${PROFILERATE_PRECOMMAND}exec sh '${DEST}/shell.sh'"
       return 0
@@ -144,9 +146,7 @@ _profilerate_copy_manual () {
     cd "${PROFILERATE_DIR}"
     FILES=$(find . $(_profilerate_excludes_find))
 
-    # this is usually fast enough that we don't need to warn the user
-    # except when there's a lot of files
-    if [ "$(echo "${FILES}" | wc -l 2>"$_PROFILERATE_STDERR")" -gt 20 ]
+    if [ "$(echo "${FILES}" | wc -l 2>"$PROFILERATE_STDERR")" -gt 20 ]
     then
       echo "Using manual transfer, which may take some time since you have many files to transfer">&2
     fi
@@ -158,7 +158,6 @@ _profilerate_copy_manual () {
       then
         if [ "${FILENAME}" != "." ]
         then
-          # if you know a better, more portable and efficient way to check file perms, let me know
           MKDIR="${MKDIR}mkdir -m $(($([ -r "${FILENAME}" ] && echo 4) + $([ -w "${FILENAME}" ] && echo 2) + $([ -x "${FILENAME}" ] && echo 1) + 0))00 -p \"${FILENAME}\" && "
         fi
       fi
@@ -166,7 +165,7 @@ _profilerate_copy_manual () {
 ${FILES}
 EOF
 
-    DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c ":;DEST=\$(${_PROFILERATE_CREATE_DIR}) && cd \${DEST} && ${MKDIR} echo \${DEST}" 2>"${_PROFILERATE_STDERR}")
+    DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c ":;DEST=\$(${_PROFILERATE_CREATE_DIR}) && cd \${DEST} && ${MKDIR} echo \${DEST}" 2>"${PROFILERATE_STDERR}")
     echo $DEST
 
     if [ $? -ne 0 ]
@@ -180,18 +179,18 @@ EOF
       if [ -f "${FILENAME}" ]
       then
         CHMOD="${CHMOD}chmod $(($(test -r "${FILENAME}" && echo 4) + $(test -w "${FILENAME}" && echo 2) + $(test -x "${FILENAME}" && echo 1) + 0))00 \"${FILENAME}\";"
-        $NONINTERACTIVE_COMMAND "$@" sh -c ":;cat > ${DEST}/${FILENAME}" < "${FILENAME}"
+        $NONINTERACTIVE_COMMAND "$@" sh -c ":;cat > ${DEST}/${FILENAME}" < "${FILENAME}" 2>"${PROFILERATE_STDERR}"
       fi
     done<<EOF
 ${FILES}
 EOF
 
-    $NONINTERACTIVE_COMMAND "$@" sh -c ":;cd ${DEST};${CHMOD}"
+    $NONINTERACTIVE_COMMAND "$@" sh -c ":;cd ${DEST};${CHMOD}" 2>"${PROFILERATE_STDERR}"
   )
 
   if [ $? = 0 ]
   then
-    "${INTERACTIVE_COMMAND}" "$@" sh -c "${PROFILERATE_PRECOMMAND}exec ${DEST}/shell.sh"
+    "${INTERACTIVE_COMMAND}" "$@" sh -c ":;${PROFILERATE_PRECOMMAND}exec ${DEST}/shell.sh"
     return 0
   fi
 
@@ -214,12 +213,12 @@ _profilerate_copy () {
   # zsh only, make word splitting same as bash
   setopt LOCAL_OPTIONS shwordsplit 2>/dev/null
 
-  for COPY_METHOD in $_PROFILERATE_TRANSFER_METHODS
+  for COPY_METHOD in $PROFILERATE_TRANSFER_METHODS
   do
     DEST=""
     FUNCTION="_profilerate_copy_${COPY_METHOD}"
     if [ -n "$(command -v $FUNCTION)" ]; then
-      echo "Using ${FUNCTION} to transfer">"${_PROFILERATE_STDERR}"
+      echo "Using ${FUNCTION} to transfer">"${PROFILERATE_STDERR}"
       # Each profilerate_copy_x function must take:
       # the noninteractice command as a function name
       # the args the user passed in
@@ -230,7 +229,7 @@ _profilerate_copy () {
         return 0
       fi
     else
-      echo "${FUNCTION} Not found">"${_PROFILERATE_STDERR}"
+      echo "${FUNCTION} Not found">"${PROFILERATE_STDERR}"
     fi
   done
 

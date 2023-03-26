@@ -272,7 +272,7 @@ profilerate_docker_run --rm jonrad/profilerate-sh:latest #Test sh (ash)
 
 To configure the transfer methods, set the environment variable:
 ```bash
-export _PROFILERATE_TRANSFER_METHODS="SPACE SEPARATED VALUES" #default: "tar manual"
+export PROFILERATE_TRANSFER_METHODS="SPACE SEPARATED VALUES" #default: "tar manual"
 ```
 
 The options are as follows:
@@ -369,7 +369,7 @@ However, you do not need to push the docker images to a remote repository when i
 The following should help with debugging:
 
 ```bash
-export _PROFILERATE_STDERR=/dev/stderr # Print out errors from calls made by profilerate
+export PROFILERATE_STDERR=/dev/stderr # Print out errors from calls made by profilerate
 set -x # https://linuxhint.com/set-x-command-bash/
 ```
 
