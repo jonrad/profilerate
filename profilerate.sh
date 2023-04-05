@@ -165,7 +165,7 @@ _profilerate_copy_manual () {
 ${FILES}
 EOF
 
-    DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c ":;DEST=\$(${_PROFILERATE_CREATE_DIR}) && cd \${DEST} && ${MKDIR} echo \${DEST}" 2>"${PROFILERATE_STDERR}")
+    DEST=$("${NONINTERACTIVE_COMMAND}" "$@" sh -c ":;DEST=\$(${_PROFILERATE_CREATE_DIR}) && cd \${DEST} && ${MKDIR} echo \${DEST}" 2>"${PROFILERATE_STDERR}") || return 1
     echo $DEST
 
     if [ $? -ne 0 ]
